@@ -76,8 +76,18 @@
         </div>
         
         <div class="lang-switcher" style="padding: 15px 24px; display: flex; gap: 15px; justify-content: flex-start; border-top: 1px solid var(--color-border); font-size: 20px; margin-top: auto;">
-            <a href="{{ route('lang.switch', 'pt_BR') }}" style="text-decoration: none; filter: {{ App::getLocale() == 'pt_BR' ? 'grayscale(0)' : 'grayscale(100%) opacity(50%)' }}; transition: 0.2s;" title="Português">🇧🇷</a>
-            <a href="{{ route('lang.switch', 'en') }}" style="text-decoration: none; filter: {{ App::getLocale() == 'en' ? 'grayscale(0)' : 'grayscale(100%) opacity(50%)' }}; transition: 0.2s;" title="English">🇺🇸</a>
+            <a href="{{ route('lang.switch', 'pt_BR') }}" @style([
+                'text-decoration: none',
+                'transition: 0.2s',
+                'filter: grayscale(0)' => app()->getLocale() == 'pt_BR',
+                'filter: grayscale(100%) opacity(50%)' => app()->getLocale() != 'pt_BR'
+            ]) title="Português">🇧🇷</a>
+            <a href="{{ route('lang.switch', 'en') }}" @style([
+                'text-decoration: none',
+                'transition: 0.2s',
+                'filter: grayscale(0)' => app()->getLocale() == 'en',
+                'filter: grayscale(100%) opacity(50%)' => app()->getLocale() != 'en'
+            ]) title="English">🇺🇸</a>
         </div>
 
         <div class="user-pill">
