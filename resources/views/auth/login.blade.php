@@ -16,18 +16,7 @@
     <div class="login-wrap">
         <div class="login-box">
             <div class="login-logo">
-                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-building-bank" width="48" height="48" viewBox="0 0 24 24" stroke-width="1.5" stroke="var(--color-text-info)" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:8px;">
-                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-                  <path d="M3 21l18 0" />
-                  <path d="M3 10l18 0" />
-                  <path d="M5 6l7 -3l7 3" />
-                  <path d="M4 10l0 11" />
-                  <path d="M20 10l0 11" />
-                  <path d="M8 21l0 -4" />
-                  <path d="M12 21l0 -7" />
-                  <path d="M16 21l0 -10" />
-                </svg>
-                <h1>FinControl</h1>
+                <img src="{{ asset('logo.jpg') }}" alt="FinControl Logo" style="max-height: 80px; margin-bottom: 16px; object-fit: contain;">
                 <p>{{ __('Gestão financeira empresarial') }}</p>
             </div>
             <div class="card">
