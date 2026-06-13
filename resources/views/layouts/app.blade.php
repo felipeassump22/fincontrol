@@ -50,7 +50,7 @@
         {{-- SIDEBAR --}}
         <div class="sidebar" id="sidebar">
             <div class="sidebar-logo" style="padding: 10px 0;">
-                <img src="{{ asset('fincontrol.png') }}" alt="FinControl Logo" style="max-height: 40px; object-fit: contain;">
+                <img src="{{ asset('fincontrol.png') }}" alt="FinControl Logo" style="max-height: 40px; object-fit: contain; mix-blend-mode: multiply;">
             </div>
             <div class="sidebar-inner">
                 <div class="nav-section">
