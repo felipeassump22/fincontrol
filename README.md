@@ -46,8 +46,7 @@ O **FinControl** surgiu de um problema real: ferramentas financeiras são ou **s
 - 📄 **Exporta** relatórios gerenciais profissionais em PDF
 - 🕵️ **Registra** um log completo de tudo que foi alterado no sistema
 
-> [!NOTE]
-> Este projeto foi desenvolvido como **Trabalho de Engenharia de Software**, aplicando padrões arquiteturais avançados (Service Pattern, ACID, Clean Architecture) em um cenário de negócio real e funcional.
+
 
 ---
 
@@ -535,7 +534,7 @@ fincontrol/
 
 ### Feito com 💙 e muito ☕
 
-*Engenharia de Software Avançada — 2026*
+*Construído com obsessão por qualidade.*
 
 [![GitHub Stars](https://img.shields.io/github/stars/GatoSemOrelha/fincontrol-engenharia?style=social)](https://github.com/GatoSemOrelha/fincontrol-engenharia/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/GatoSemOrelha/fincontrol-engenharia?style=social)](https://github.com/GatoSemOrelha/fincontrol-engenharia/network)
