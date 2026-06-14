@@ -19,8 +19,8 @@
 
 <br>
 
-[![GitHub Stars](https://img.shields.io/github/stars/GatoSemOrelha/fincontrol-engenharia?style=social)](https://github.com/GatoSemOrelha/fincontrol-engenharia/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/GatoSemOrelha/fincontrol-engenharia?style=social)](https://github.com/GatoSemOrelha/fincontrol-engenharia/network)
+[![GitHub Stars](https://img.shields.io/github/stars/GatoSemOrelha/fincontrol?style=social)](https://github.com/GatoSemOrelha/fincontrol/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/GatoSemOrelha/fincontrol?style=social)](https://github.com/GatoSemOrelha/fincontrol/network)
 [![Status](https://img.shields.io/badge/Status-🚀_Produção-brightgreen?style=flat-square)](#)
 [![Licença](https://img.shields.io/badge/Licença-MIT-blue?style=flat-square)](LICENSE)
 
@@ -80,10 +80,10 @@ Agora cole os comandos abaixo e aperte Enter:
 
 ```bash
 # Baixa o código do projeto para a sua máquina
-git clone https://github.com/GatoSemOrelha/fincontrol-engenharia.git
+git clone https://github.com/GatoSemOrelha/fincontrol.git
 
 # Entra na pasta do projeto
-cd fincontrol-engenharia
+cd fincontrol
 ```
 
 > [!TIP]
@@ -536,7 +536,7 @@ fincontrol/
 
 *Construído com obsessão por qualidade.*
 
-[![GitHub Stars](https://img.shields.io/github/stars/GatoSemOrelha/fincontrol-engenharia?style=social)](https://github.com/GatoSemOrelha/fincontrol-engenharia/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/GatoSemOrelha/fincontrol-engenharia?style=social)](https://github.com/GatoSemOrelha/fincontrol-engenharia/network)
+[![GitHub Stars](https://img.shields.io/github/stars/GatoSemOrelha/fincontrol?style=social)](https://github.com/GatoSemOrelha/fincontrol/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/GatoSemOrelha/fincontrol?style=social)](https://github.com/GatoSemOrelha/fincontrol/network)
 
 </div>
