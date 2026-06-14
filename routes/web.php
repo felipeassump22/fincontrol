@@ -87,3 +87,4 @@ Route::middleware(['auth'])->group(function () {
         ->except(['create', 'edit', 'show', 'destroy'])
         ->middleware('role:Administrador');
 });
+ 
