@@ -57,6 +57,55 @@
             transform: scale(0.9);
         }
 
+        /* Premium Sidebar Header */
+        .sidebar-header-premium {
+            padding: 24px 0 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+        }
+
+        .logo-glow-wrapper {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .logo-glow-wrapper::before {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: 0;
+            filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .sidebar-header-premium:hover .logo-glow-wrapper {
+            transform: scale(1.05);
+        }
+
+        .sidebar-header-premium:hover .logo-glow-wrapper::before {
+            opacity: 1;
+        }
+
+        .premium-logo {
+            max-height: 55px;
+            object-fit: contain;
+            position: relative;
+            z-index: 1;
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+        }
+
         /* Fallback nativo do Chrome para caso o Turbo falhe */
         @view-transition {
             navigation: auto;
@@ -82,8 +131,10 @@
 
         {{-- SIDEBAR --}}
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-logo" style="padding: 10px 0; justify-content: center;">
-                <img src="{{ asset('logo.png') }}?v={{ time() }}" alt="FinControl Logo" style="max-height: 40px; object-fit: contain;">
+            <div class="sidebar-header-premium">
+                <div class="logo-glow-wrapper">
+                    <img src="{{ asset('logo.png') }}?v={{ time() }}" alt="FinControl Logo" class="premium-logo">
+                </div>
             </div>
             <div class="sidebar-inner">
                 <div class="nav-section">
