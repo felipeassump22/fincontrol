@@ -49,8 +49,8 @@
 
         {{-- SIDEBAR --}}
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-logo" style="padding: 20px 0; text-align: center;">
-                <img src="{{ asset('logo.png') }}?v={{ time() }}" alt="FinControl Logo" style="max-height: 65px; object-fit: contain;">
+            <div class="sidebar-logo" style="text-align: center;">
+                <img src="{{ asset('logo.png') }}?v={{ time() }}" alt="FinControl Logo" style="max-height: 65px; margin: 10px 0; object-fit: contain;">
             </div>
             <div class="sidebar-inner">
                 <div class="nav-section">
