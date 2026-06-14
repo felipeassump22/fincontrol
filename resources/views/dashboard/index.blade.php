@@ -232,7 +232,7 @@
                 <span class="metric-title">{{ __('Saldo Consolidado') }}</span>
                 <div class="metric-icon-wrap icon-balance"><i class="ti ti-wallet"></i></div>
             </div>
-            <div class="metric-value-large" style="color:{{ $consolidatedBalance >= 0 ? '#4ade80' : '#f87171' }}">
+            <div class="metric-value-large" {!! 'style="color:' . ($consolidatedBalance >= 0 ? '#4ade80' : '#f87171') . '"' !!}>
                 {{ money($consolidatedBalance) }}
             </div>
             <div class="metric-footer">
@@ -309,7 +309,7 @@
                         <span style="font-weight: 600">{{ money($cat['total']) }}</span>
                     </div>
                     <div class="progress-bg" style="background: rgba(255,255,255,0.05)">
-                        <div class="progress-fill animate-bar" style="width:{{ $cat['percentage'] }}%;background:linear-gradient(90deg, #4ade80, #22c55e);box-shadow: 0 0 10px rgba(34, 197, 94, 0.4)"></div>
+                        <div class="progress-fill animate-bar" {!! 'style="width:' . $cat['percentage'] . '%;background:linear-gradient(90deg, #4ade80, #22c55e);box-shadow: 0 0 10px rgba(34, 197, 94, 0.4)"' !!}></div>
                     </div>
                 </div>
             @endforeach
@@ -348,7 +348,7 @@
                                 <div style="display:flex;align-items:center;gap:8px">
                                     <span style="font-size:13px;font-weight:600;width:35px">{{ $client['percentage'] }}%</span>
                                     <div style="flex:1;height:4px;background:rgba(255,255,255,0.1);border-radius:2px;overflow:hidden">
-                                        <div style="width:{{ $client['percentage'] }}%;height:100%;background:#3b82f6"></div>
+                                        <div {!! 'style="width:' . $client['percentage'] . '%;height:100%;background:#3b82f6"' !!}></div>
                                     </div>
                                 </div>
                             </td>
