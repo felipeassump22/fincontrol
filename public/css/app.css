@@ -686,3 +686,4 @@ input:focus, select:focus, textarea:focus {
 .toast.show {
     transform: translateY(0) scale(1);
 }
+ 
