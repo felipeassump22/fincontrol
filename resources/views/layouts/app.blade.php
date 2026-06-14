@@ -99,7 +99,7 @@
         }
 
         .premium-logo {
-            max-height: 55px;
+            max-height: 40px;
             object-fit: contain;
             position: relative;
             z-index: 1;
