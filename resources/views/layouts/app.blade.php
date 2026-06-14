@@ -82,7 +82,7 @@
 
         {{-- SIDEBAR --}}
         <div class="sidebar" id="sidebar">
-            <div class="sidebar-logo" style="padding: 10px 0; text-align: center;">
+            <div class="sidebar-logo" style="padding: 10px 0; justify-content: center;">
                 <img src="{{ asset('logo.png') }}?v={{ time() }}" alt="FinControl Logo" style="max-height: 40px; object-fit: contain;">
             </div>
             <div class="sidebar-inner">
