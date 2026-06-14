@@ -7,6 +7,7 @@ use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Service: MonthlyReportService
@@ -120,7 +121,8 @@ class MonthlyReportService
             $this->generatePdf($report);
         }
 
-        $safeName = \Illuminate\Support\Str::slug($report->periodLabel(), '_');
+        $safeName = Str::slug($report->periodLabel(), '_');
+
         return response()->download(
             Storage::disk('public')->path($report->pdf_path),
             "FinControl_Relatorio_{$safeName}.pdf",

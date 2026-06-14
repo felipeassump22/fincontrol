@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -51,6 +52,6 @@ class MonthlyReport extends Model
      */
     public function periodLabel(): string
     {
-        return \Carbon\Carbon::createFromDate($this->year, $this->month, 1)->translatedFormat('F Y');
+        return Carbon::createFromDate($this->year, $this->month, 1)->translatedFormat('F Y');
     }
 }

@@ -9,8 +9,10 @@ use App\Http\Controllers\CreditCardController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\InvestmentController;
 use App\Http\Controllers\InvoiceController;
+use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\RecurringExpenseController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -27,7 +29,7 @@ Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 // Troca de Idioma (Público)
-Route::get('/lang/{locale}', [\App\Http\Controllers\LanguageController::class, 'switch'])->name('lang.switch');
+Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
 
 // ─── Rotas autenticadas ───────────────────────────
 Route::middleware(['auth'])->group(function () {
@@ -74,8 +76,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow'])->name('reports.cash-flow');
 
     // Configurações
-    Route::get('/settings', [\App\Http\Controllers\SettingsController::class, 'index'])->name('settings.index');
-    Route::post('/settings/currency', [\App\Http\Controllers\SettingsController::class, 'updateCurrency'])->name('settings.currency');
+    Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('/settings/currency', [SettingsController::class, 'updateCurrency'])->name('settings.currency');
 
     // Auditoria
     Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');

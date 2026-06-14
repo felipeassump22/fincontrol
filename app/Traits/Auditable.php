@@ -3,6 +3,7 @@
 namespace App\Traits;
 
 use App\Models\AuditLog;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
 
@@ -12,7 +13,8 @@ use Illuminate\Support\Facades\Request;
  * Registra automaticamente alterações em modelos no audit_logs.
  * Adicione `use Auditable;` em qualquer Model que precise de auditoria.
  *
- * @mixin \Illuminate\Database\Eloquent\Model
+ * @mixin Model
+ *
  * @method static void created(callable $callback)
  * @method static void updated(callable $callback)
  * @method static void deleted(callable $callback)

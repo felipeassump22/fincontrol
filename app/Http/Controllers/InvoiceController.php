@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
+use App\Models\Category;
+use App\Models\CreditCard;
 use App\Models\Invoice;
 use App\Services\InstallmentService;
 use Carbon\Carbon;
@@ -36,9 +39,9 @@ class InvoiceController extends Controller
             $invoice->paid_total = $this->installmentService->getPaidTotal($invoice);
         }
 
-        $bankAccounts = \App\Models\BankAccount::where('user_id', $user->id)->get();
-        $categories = \App\Models\Category::where('type', 'EXPENSE')->get();
-        $creditCards = \App\Models\CreditCard::where('user_id', $user->id)->get();
+        $bankAccounts = BankAccount::where('user_id', $user->id)->get();
+        $categories = Category::where('type', 'EXPENSE')->get();
+        $creditCards = CreditCard::where('user_id', $user->id)->get();
 
         return view('invoices.index', compact('invoices', 'bankAccounts', 'categories', 'creditCards'));
     }

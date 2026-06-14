@@ -74,12 +74,12 @@ class TransactionService
                 $data['invoice_document_url'] = $invoiceFile->store('invoices', 'public');
             }
 
-            $wasPending = !$transaction->isPaid();
+            $wasPending = ! $transaction->isPaid();
 
             $transaction->fill($data);
             $isNowPaid = $transaction->status->value === 'PAID';
 
-            if ($isNowPaid && !isset($data['payment_date'])) {
+            if ($isNowPaid && ! isset($data['payment_date'])) {
                 $transaction->payment_date = now()->toDateString();
             }
 
@@ -92,7 +92,7 @@ class TransactionService
                     (float) $transaction->amount,
                     $transaction->transaction_type->value
                 );
-                
+
                 $transaction->logCustomAudit('paid', ['status' => 'PENDING'], ['status' => 'PAID']);
             }
 

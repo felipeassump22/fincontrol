@@ -12,53 +12,55 @@
 <div class="content">
     <div class="grid-3">
         @foreach($accounts as $account)
-            <div class="card" {!! $account->isNegative() ? 'style="border-color:var(--color-border-danger)"' : '' !!}>
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-                    @php
-                        $n = $account->name;
-                        $domain = null;
+            <div class="card" {!! 'style="display:flex;flex-direction:column;height:100%;' . ($account->isNegative() ? 'border-color:var(--color-border-danger)' : '') . '"' !!}>
+                <div style="flex:1">
+                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+                        @php
+                            $n = $account->name;
+                            $domain = null;
 
-                        if (stripos($n, 'itaú') !== false || stripos($n, 'itau') !== false) {
-                            $domain = 'itau.com.br';
-                        } elseif (stripos($n, 'nubank') !== false || stripos($n, 'nu ') !== false) {
-                            $domain = 'nubank.com.br';
-                        } elseif (stripos($n, 'bradesco') !== false) {
-                            $domain = 'banco.bradesco';
-                        } elseif (stripos($n, 'caixa') !== false || stripos($n, 'cef') !== false) {
-                            $domain = 'caixa.gov.br';
-                        } elseif (stripos($n, 'banco do brasil') !== false || stripos($n, 'bb') !== false) {
-                            $domain = 'bb.com.br';
-                        } elseif (stripos($n, 'santander') !== false) {
-                            $domain = 'santander.com.br';
-                        } elseif (stripos($n, 'inter') !== false) {
-                            $domain = 'bancointer.com.br';
-                        } elseif (stripos($n, 'safra') !== false) {
-                            $domain = 'safra.com.br';
-                        } elseif (stripos($n, 'sicoob') !== false) {
-                            $domain = 'sicoob.com.br';
-                        } elseif (stripos($n, 'c6') !== false) {
-                            $domain = 'c6bank.com.br';
-                        }
-                    @endphp
+                            if (stripos($n, 'itaú') !== false || stripos($n, 'itau') !== false) {
+                                $domain = 'itau.com.br';
+                            } elseif (stripos($n, 'nubank') !== false || stripos($n, 'nu ') !== false) {
+                                $domain = 'nubank.com.br';
+                            } elseif (stripos($n, 'bradesco') !== false) {
+                                $domain = 'banco.bradesco';
+                            } elseif (stripos($n, 'caixa') !== false || stripos($n, 'cef') !== false) {
+                                $domain = 'caixa.gov.br';
+                            } elseif (stripos($n, 'banco do brasil') !== false || stripos($n, 'bb') !== false) {
+                                $domain = 'bb.com.br';
+                            } elseif (stripos($n, 'santander') !== false) {
+                                $domain = 'santander.com.br';
+                            } elseif (stripos($n, 'inter') !== false) {
+                                $domain = 'bancointer.com.br';
+                            } elseif (stripos($n, 'safra') !== false) {
+                                $domain = 'safra.com.br';
+                            } elseif (stripos($n, 'sicoob') !== false) {
+                                $domain = 'sicoob.com.br';
+                            } elseif (stripos($n, 'c6') !== false) {
+                                $domain = 'c6bank.com.br';
+                            }
+                        @endphp
 
-                    @if($domain)
-                        <div style="width:38px;height:38px;border-radius:var(--border-radius-md);background:#ffffff;display:flex;align-items:center;justify-content:center;overflow:hidden;border:0.5px solid var(--color-border-tertiary);box-shadow:0 2px 4px rgba(0,0,0,0.05)">
-                            <img src="https://www.google.com/s2/favicons?domain={{ $domain }}&sz=128" style="width:24px;height:24px;object-fit:contain;border-radius:4px" alt="Logo">
+                        @if($domain)
+                            <div style="width:38px;height:38px;border-radius:var(--border-radius-md);background:#ffffff;display:flex;align-items:center;justify-content:center;overflow:hidden;border:0.5px solid var(--color-border-tertiary);box-shadow:0 2px 4px rgba(0,0,0,0.05)">
+                                <img src="https://www.google.com/s2/favicons?domain={{ $domain }}&sz=128" style="width:24px;height:24px;object-fit:contain;border-radius:4px" alt="Logo">
+                            </div>
+                        @else
+                            <div {!! $account->isNegative() ? 'style="width:38px;height:38px;border-radius:var(--border-radius-md);background:var(--color-background-danger);display:flex;align-items:center;justify-content:center"' : 'style="width:38px;height:38px;border-radius:var(--border-radius-md);background:var(--color-background-info);display:flex;align-items:center;justify-content:center"' !!}>
+                                <i class="ti ti-building-bank" {!! $account->isNegative() ? 'style="color:var(--color-text-danger);font-size:18px"' : 'style="color:var(--color-text-info);font-size:18px"' !!}></i>
+                            </div>
+                        @endif
+                        <div>
+                            <div style="font-size:14px;font-weight:500">{{ $account->name }}</div>
                         </div>
-                    @else
-                        <div {!! $account->isNegative() ? 'style="width:38px;height:38px;border-radius:var(--border-radius-md);background:var(--color-background-danger);display:flex;align-items:center;justify-content:center"' : 'style="width:38px;height:38px;border-radius:var(--border-radius-md);background:var(--color-background-info);display:flex;align-items:center;justify-content:center"' !!}>
-                            <i class="ti ti-building-bank" {!! $account->isNegative() ? 'style="color:var(--color-text-danger);font-size:18px"' : 'style="color:var(--color-text-info);font-size:18px"' !!}></i>
+                    </div>
+                    @if($account->isNegative())
+                        <div class="alert alert-danger" style="padding:6px 10px;margin-bottom:8px">
+                            <i class="ti ti-alert-triangle"></i>{{ __('Saldo negativo') }}
                         </div>
                     @endif
-                    <div>
-                        <div style="font-size:14px;font-weight:500">{{ $account->name }}</div>
-                    </div>
                 </div>
-                @if($account->isNegative())
-                    <div class="alert alert-danger" style="padding:6px 10px;margin-bottom:8px">
-                        <i class="ti ti-alert-triangle"></i>{{ __('Saldo negativo') }}
-                    </div>
-                @endif
                 <div class="divider"></div>
                 <div {!! $account->isNegative() ? 'style="font-size:22px;font-weight:500;color:var(--color-text-danger)"' : 'style="font-size:22px;font-weight:500;color:var(--color-text-success)"' !!}>
                     {{ money($account->current_balance) }}

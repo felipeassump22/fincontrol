@@ -59,7 +59,8 @@ class CashFlowProjectionService
 
         $scheduledByMonth = [];
         foreach ($scheduledTransactions as $st) {
-            $key = "{$st->year}-{$st->month}-{$st->transaction_type}";
+            $typeStr = $st->transaction_type instanceof \BackedEnum ? $st->transaction_type->value : (string) $st->transaction_type;
+            $key = "{$st->year}-{$st->month}-{$typeStr}";
             $scheduledByMonth[$key] = (float) $st->total;
         }
 

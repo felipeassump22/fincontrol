@@ -14,7 +14,7 @@ class LanguageController extends Controller
         if (in_array($locale, ['en', 'pt_BR'])) {
             session()->put('locale', $locale);
         }
-        
+
         return redirect()->back();
     }
 }

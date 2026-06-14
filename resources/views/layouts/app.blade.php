@@ -343,6 +343,8 @@
         // UI na primeira carga (sem turbo ativado)
         updateThemeUI(localStorage.getItem('theme') || 'system');
     </script>
+    <script>
+        document.cookie = "client_tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone + "; path=/; max-age=31536000";
+    </script>
 </body>
-
 </html>

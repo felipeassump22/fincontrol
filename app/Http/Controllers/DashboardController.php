@@ -6,6 +6,7 @@ use App\Services\BankAccountService;
 use App\Services\CashFlowProjectionService;
 use App\Services\ReportService;
 use App\Services\TransactionService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 /**
@@ -35,11 +36,14 @@ class DashboardController extends Controller
         $totals = $this->transactionService->getMonthlyTotals($user->id, $year, $month);
 
         // Métricas do mês anterior para comparativo
-        $prevDate = \Carbon\Carbon::create($year, $month, 1)->subMonth();
+        $prevDate = Carbon::create($year, $month, 1)->subMonth();
         $prevTotals = $this->transactionService->getMonthlyTotals($user->id, $prevDate->year, $prevDate->month);
 
         $calculateVariation = function ($current, $previous) {
-            if ($previous == 0) return $current > 0 ? 100 : 0;
+            if ($previous == 0) {
+                return $current > 0 ? 100 : 0;
+            }
+
             return (($current - $previous) / abs($previous)) * 100;
         };
 

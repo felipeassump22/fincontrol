@@ -14,7 +14,7 @@ class SettingsController extends Controller
     public function updateCurrency(Request $request)
     {
         $request->validate([
-            'currency' => 'required|in:BRL,USD,EUR,GBP'
+            'currency' => 'required|in:BRL,USD,EUR,GBP',
         ]);
 
         $user = auth()->user();
