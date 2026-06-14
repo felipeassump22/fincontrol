@@ -312,8 +312,8 @@ nav .flex-sm-fill { display: flex; flex-direction: column; align-items: center; 
     .content { padding: 14px; }
 }
 
-/* ─── Mega Otimização Android Portrait (Max 480px) ─── */
-@media (max-width: 480px) {
+/* ─── Mega Otimização Android Portrait e Mobile (Max 768px) ─── */
+@media (max-width: 768px) {
     .content { padding: 0 !important; }
     .table-wrap { border: none !important; border-radius: 0 !important; padding: 0 !important; background: transparent; }
     
