@@ -310,15 +310,6 @@ nav .flex-sm-fill { display: flex; flex-direction: column; align-items: center; 
     .form-row, .form-row-3 { grid-template-columns: 1fr; }
     .topbar { padding: 10px 14px; }
     .content { padding: 14px; }
-
-    /* Tables to Cards on Mobile */
-    .mobile-cards-table, .mobile-cards-table tbody, .mobile-cards-table tr, .mobile-cards-table td { display: block; width: 100%; }
-    .mobile-cards-table thead { display: none; }
-    .mobile-cards-table tr { margin-bottom: 16px; border: 1px solid var(--color-border-tertiary); border-radius: var(--border-radius-xl); background: var(--color-background-primary) !important; padding: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .mobile-cards-table td { display: flex; justify-content: space-between; align-items: center; border: none; padding: 8px 4px; text-align: right; }
-    .mobile-cards-table td:not(:last-child) { border-bottom: 0.5px solid var(--color-border-tertiary); }
-    .mobile-cards-table td::before { content: attr(data-label); font-weight: 500; font-size: 11px; text-transform: uppercase; color: var(--color-text-tertiary); text-align: left; margin-right: 16px; }
-    .mobile-cards-table td.action-cell-td { justify-content: flex-end; gap: 12px; border-bottom: none !important; }
 }
 
 /* ─── Keyframes & Animations ───────────────────────── */
