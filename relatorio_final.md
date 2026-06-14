@@ -99,3 +99,4 @@ A interface é 100% responsiva. Como os servidores do Docker amarram a porta da 
 ## 6. Conclusão
 
 A arquitetura estabelecida demonstra proficiência não apenas na resolução lógica das matrizes de requisitos de software, mas ressalta um cuidado essencial com as necessidades de UX/UI atuais e blindagem escalável da infraestrutura com Docker. O **FinControl** é uma plataforma que vai além de uma prova de conceito acadêmica, posicionando-se como um Produto de Software Minimum Viable Product (MVP) estável e corporativo.
+ 
