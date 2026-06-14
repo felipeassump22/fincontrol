@@ -24,11 +24,16 @@
             background-color: var(--color-background-info);
         }
         
+        /* Transição premium e fluída para mudança de tema */
+        * {
+            transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+        }
+
         .icon-btn {
             background: none;
             border: none;
             cursor: pointer;
-            padding: 8px;
+            padding: 6px;
             border-radius: 8px;
             display: inline-flex;
             align-items: center;
@@ -145,7 +150,7 @@
                     <div style="font-size:12px;font-weight:500">{{ auth()->user()->username }}</div>
                     <div style="font-size:11px;color:var(--color-text-tertiary)">{{ auth()->user()->role->name }}</div>
                 </div>
-                <button id="theme-toggle" class="icon-btn" style="margin-right:4px" title="Alternar tema">
+                <button id="theme-toggle" class="icon-btn" style="margin-right:0px" title="Alternar tema">
                     <i class="ti ti-moon" id="theme-icon"></i>
                 </button>
                 <form action="{{ route('logout') }}" method="POST" style="display:inline">
