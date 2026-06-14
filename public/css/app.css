@@ -310,6 +310,7 @@ nav .flex-sm-fill { display: flex; flex-direction: column; align-items: center; 
     .form-row, .form-row-3 { grid-template-columns: 1fr; }
     .topbar { padding: 10px 14px; }
     .content { padding: 14px; }
+    .hide-on-mobile { display: none !important; }
 }
 
 /* ─── Keyframes & Animations ───────────────────────── */

@@ -39,8 +39,15 @@
         <table>
             <thead>
                 <tr>
-                    <th>{{ __('Data') }}</th><th>{{ __('Descrição') }}</th><th>{{ __('Categoria') }}</th><th>{{ __('Conta') }}</th>
-                    <th>{{ __('Tipo') }}</th><th>{{ __('Valor') }}</th><th>{{ __('NF') }}</th><th>{{ __('Status') }}</th><th>{{ __('Ações') }}</th>
+                    <th>{{ __('Data') }}</th>
+                    <th>{{ __('Descrição') }}</th>
+                    <th class="hide-on-mobile">{{ __('Categoria') }}</th>
+                    <th class="hide-on-mobile">{{ __('Conta') }}</th>
+                    <th class="hide-on-mobile">{{ __('Tipo') }}</th>
+                    <th>{{ __('Valor') }}</th>
+                    <th class="hide-on-mobile">{{ __('NF') }}</th>
+                    <th>{{ __('Status') }}</th>
+                    <th>{{ __('Ações') }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -48,13 +55,13 @@
                     <tr>
                         <td>{{ $tx->due_date->format('d/m/Y') }}</td>
                         <td>{{ $tx->description }}</td>
-                        <td>{{ $tx->category->name ?? '—' }}</td>
-                        <td>{{ $tx->bankAccount->name }}</td>
-                        <td><span class="tag {{ $tx->transaction_type->cssClass() }}">{{ $tx->transaction_type->label() }}</span></td>
+                        <td class="hide-on-mobile">{{ $tx->category->name ?? '—' }}</td>
+                        <td class="hide-on-mobile">{{ $tx->bankAccount->name }}</td>
+                        <td class="hide-on-mobile"><span class="tag {{ $tx->transaction_type->cssClass() }}">{{ $tx->transaction_type->label() }}</span></td>
                         <td style="color:{{ $tx->isIncome() ? 'var(--color-text-success)' : 'var(--color-text-danger)' }};font-weight:500">
                             {{ money($tx->amount) }}
                         </td>
-                        <td>
+                        <td class="hide-on-mobile">
                             @if($tx->invoice_document_url)
                                 <a href="{{ asset('storage/' . $tx->invoice_document_url) }}" target="_blank" title="{{ __('Ver nota fiscal') }}">
                                     <i class="ti ti-file-invoice" style="color:var(--color-text-info);font-size:15px"></i>
