@@ -27,8 +27,9 @@ class InvoiceController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $ownerId = $user->dataOwnerId();
 
-        $invoices = Invoice::where('user_id', $user->id)
+        $invoices = Invoice::where('user_id', $ownerId)
             ->with(['installments.transaction'])
             ->orderBy('due_date', 'desc')
             ->paginate(20);
@@ -39,9 +40,9 @@ class InvoiceController extends Controller
             $invoice->paid_total = $this->installmentService->getPaidTotal($invoice);
         }
 
-        $bankAccounts = BankAccount::where('user_id', $user->id)->get();
+        $bankAccounts = BankAccount::where('user_id', $ownerId)->active()->orderBy('name')->get();
         $categories = Category::where('type', 'EXPENSE')->get();
-        $creditCards = CreditCard::where('user_id', $user->id)->get();
+        $creditCards = CreditCard::where('user_id', $ownerId)->get();
 
         return view('invoices.index', compact('invoices', 'bankAccounts', 'categories', 'creditCards'));
     }
@@ -51,6 +52,10 @@ class InvoiceController extends Controller
      */
     public function store(Request $request)
     {
+        if (! $request->user()->canManageFinances()) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'description' => 'required|string|max:255',
             'total_amount' => 'required|numeric|min:0.01',
@@ -69,7 +74,7 @@ class InvoiceController extends Controller
         $baseData = [
             'description' => $data['description'],
             'transaction_type' => 'EXPENSE',
-            'user_id' => $request->user()->id,
+            'user_id' => $request->user()->dataOwnerId(),
             'bank_account_id' => $data['bank_account_id'],
             'category_id' => $data['category_id'] ?? null,
             'credit_card_id' => $data['credit_card_id'] ?? null,

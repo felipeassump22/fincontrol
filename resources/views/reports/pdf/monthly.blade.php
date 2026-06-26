@@ -322,8 +322,19 @@
         <table class="header-top">
             <tr>
                 <td style="width: 60%; vertical-align: middle;">
-                    <h1>FinControl</h1>
-                    <p class="subtitle">Relatório de Gestão Financeira</p>
+                    <h1>{{ $company?->displayName() ?? 'FinControl' }}</h1>
+                    <p class="subtitle">{{ $company?->company_name && $company?->trade_name ? $company->company_name : __('Relatório de Gestão Financeira') }}</p>
+                    @if($company?->document)
+                        <p style="font-size:11px;color:#64748b;margin-top:4px;">CNPJ/CPF: {{ $company->document }}</p>
+                    @endif
+                    @if($company?->formattedAddress())
+                        <p style="font-size:11px;color:#64748b;margin-top:2px;">{{ $company->formattedAddress() }}</p>
+                    @endif
+                    @if($company?->email || $company?->phone)
+                        <p style="font-size:11px;color:#64748b;margin-top:2px;">
+                            {{ $company->email }}{{ $company->email && $company->phone ? ' · ' : '' }}{{ $company->phone }}
+                        </p>
+                    @endif
                 </td>
                 <td style="width: 40%; text-align: right; vertical-align: middle;">
                     <div class="header-badge">{{ $report->periodLabel() }}</div>

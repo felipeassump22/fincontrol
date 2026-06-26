@@ -3,16 +3,7 @@
 if (! function_exists('money')) {
     function money($value)
     {
-        $currency = auth()->check() ? auth()->user()->currency : 'BRL';
-
-        $symbols = [
-            'BRL' => 'R$',
-            'USD' => '$',
-            'EUR' => '€',
-            'GBP' => '£',
-        ];
-
-        $symbol = $symbols[$currency] ?? 'R$';
+        $symbol = currency_symbol();
 
         // Formatação simples (mantendo o separador pt-br por enquanto para evitar quebra de testes)
         // Se a linguagem fosse dinâmica, poderíamos usar NumberFormatter
@@ -20,11 +11,28 @@ if (! function_exists('money')) {
     }
 }
 
+if (! function_exists('user_currency')) {
+    function user_currency(): string
+    {
+        return auth()->check() ? (auth()->user()->currency ?: 'BRL') : 'BRL';
+    }
+}
+
+if (! function_exists('chart_locale')) {
+    function chart_locale(): string
+    {
+        return match (user_currency()) {
+            'USD' => 'en-US',
+            'EUR' => 'de-DE',
+            'GBP' => 'en-GB',
+            default => 'pt-BR',
+        };
+    }
+}
+
 if (! function_exists('currency_symbol')) {
     function currency_symbol()
     {
-        $currency = auth()->check() ? auth()->user()->currency : 'BRL';
-
         $symbols = [
             'BRL' => 'R$',
             'USD' => '$',
@@ -32,6 +40,6 @@ if (! function_exists('currency_symbol')) {
             'GBP' => '£',
         ];
 
-        return $symbols[$currency] ?? 'R$';
+        return $symbols[user_currency()] ?? 'R$';
     }
 }

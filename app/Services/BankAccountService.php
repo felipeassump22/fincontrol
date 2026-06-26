@@ -31,6 +31,20 @@ class BankAccountService
         return $account->fresh();
     }
 
+    public function deactivate(BankAccount $account): BankAccount
+    {
+        $account->update(['is_active' => false]);
+
+        return $account->fresh();
+    }
+
+    public function activate(BankAccount $account): BankAccount
+    {
+        $account->update(['is_active' => true]);
+
+        return $account->fresh();
+    }
+
     /**
      * Recalcula o saldo de uma conta baseado nas transações pagas.
      */
@@ -82,6 +96,7 @@ class BankAccountService
     public function getAccountsWithNegativeBalance(int $userId)
     {
         return BankAccount::where('user_id', $userId)
+            ->active()
             ->where('current_balance', '<', 0)
             ->get();
     }

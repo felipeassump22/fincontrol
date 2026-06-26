@@ -4,7 +4,7 @@
 @section('content')
 <div class="topbar">
     <span class="topbar-title">{{ __('Contas bancárias') }}</span>
-    @if(auth()->user()->isAdmin())
+    @if(auth()->user()->canManageFinances())
         <button class="btn btn-primary" onclick="openModal('modal-conta')"><i class="ti ti-plus"></i>{{ __('Nova conta') }}</button>
     @endif
 </div>
@@ -12,7 +12,7 @@
 <div class="content">
     <div class="grid-3">
         @foreach($accounts as $account)
-            <div class="card" {!! 'style="display:flex;flex-direction:column;height:100%;' . ($account->isNegative() ? 'border-color:var(--color-border-danger)' : '') . '"' !!}>
+            <div class="card" {!! 'style="display:flex;flex-direction:column;height:100%;opacity:' . ($account->is_active ? '1' : '0.65') . ';' . ($account->isNegative() ? 'border-color:var(--color-border-danger)' : '') . '"' !!}>
                 <div style="flex:1">
                     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
                         @php
@@ -53,6 +53,9 @@
                         @endif
                         <div>
                             <div style="font-size:14px;font-weight:500">{{ $account->name }}</div>
+                            @unless($account->is_active)
+                                <span class="badge badge-warning" style="margin-top:4px">{{ __('Inativa') }}</span>
+                            @endunless
                         </div>
                     </div>
                     @if($account->isNegative())
@@ -82,14 +85,31 @@
                     {{ money($account->current_balance) }}
                 </div>
                 <div style="font-size:12px;color:var(--color-text-tertiary)">{{ __('saldo atual') }}</div>
-                <div style="margin-top:12px;display:flex;gap:8px">
-                    <a href="{{ route('transactions.index', ['bank_account_id' => $account->id]) }}" class="btn" style="font-size:12px;flex:1;justify-content:center">
-                        <i class="ti ti-list"></i>{{ __('Extrato') }}
-                    </a>
-                    @if(auth()->user()->isAdmin())
-                        <button class="btn btn-secondary" onclick="openModal('modal-edit-{{ $account->id }}')" style="font-size:12px;padding:8px">
-                            <i class="ti ti-edit"></i>
-                        </button>
+                <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                    @if($account->is_active)
+                        <a href="{{ route('transactions.index', ['bank_account_id' => $account->id]) }}" class="btn" style="font-size:12px;flex:1;justify-content:center">
+                            <i class="ti ti-list"></i>{{ __('Extrato') }}
+                        </a>
+                    @endif
+                    @if(auth()->user()->canManageFinances())
+                        @if($account->is_active)
+                            <button class="btn btn-secondary" onclick="openModal('modal-edit-{{ $account->id }}')" style="font-size:12px;padding:8px" title="{{ __('Editar') }}">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <form method="POST" action="{{ route('bank-accounts.deactivate', $account) }}" style="display:inline" onsubmit="return confirm('{{ __('Desativar esta conta? Os lançamentos serão preservados.') }}')">
+                                @csrf
+                                <button type="submit" class="btn" style="font-size:12px;padding:8px;color:var(--color-text-danger)" title="{{ __('Desativar') }}">
+                                    <i class="ti ti-ban"></i>
+                                </button>
+                            </form>
+                        @else
+                            <form method="POST" action="{{ route('bank-accounts.activate', $account) }}" style="display:inline;flex:1">
+                                @csrf
+                                <button type="submit" class="btn btn-primary" style="font-size:12px;width:100%;justify-content:center">
+                                    <i class="ti ti-check"></i>{{ __('Reativar conta') }}
+                                </button>
+                            </form>
+                        @endif
                     @endif
                 </div>
             </div>

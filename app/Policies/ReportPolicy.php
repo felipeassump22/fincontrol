@@ -8,8 +8,8 @@ use App\Models\User;
 /**
  * Policy: ReportPolicy
  *
- * Ambos os perfis podem visualizar relatórios.
- * Somente admin pode fechar/exportar.
+ * Ambos os perfis podem visualizar e exportar relatórios.
+ * Somente admin pode fechar o relatório mensal.
  */
 class ReportPolicy
 {
@@ -20,16 +20,16 @@ class ReportPolicy
 
     public function view(User $user, MonthlyReport $report): bool
     {
-        return $user->id === $report->user_id;
+        return $user->ownsFinancialData($report);
     }
 
     public function export(User $user): bool
     {
-        return $user->isAdmin();
+        return true;
     }
 
     public function close(User $user, MonthlyReport $report): bool
     {
-        return $user->isAdmin() && $user->id === $report->user_id;
+        return $user->isAdmin() && $user->ownsFinancialData($report);
     }
 }

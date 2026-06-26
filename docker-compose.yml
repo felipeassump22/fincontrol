@@ -36,6 +36,7 @@ services:
       - ./public:/var/www/html/public
       - ./app:/var/www/html/app
       - ./routes:/var/www/html/routes
+      - ./database:/var/www/html/database
       - app-storage:/var/www/html/storage
     depends_on:
       db:

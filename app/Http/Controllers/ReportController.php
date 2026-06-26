@@ -10,7 +10,7 @@ use Illuminate\Http\Request;
 /**
  * Controller: ReportController
  *
- * RF10, RF11, RF12
+ * RF10, RF11, RF12 + relatórios Deveria (15, 16)
  */
 class ReportController extends Controller
 {
@@ -20,49 +20,45 @@ class ReportController extends Controller
         private CashFlowProjectionService $cashFlowService,
     ) {}
 
-    /**
-     * Relatório mensal.
-     */
     public function index(Request $request)
     {
         $user = $request->user();
-        $year = $request->get('year', now()->year);
-        $month = $request->get('month', now()->month);
+        $ownerId = $user->dataOwnerId();
+        $year = (int) $request->get('year', now()->year);
+        $month = (int) $request->get('month', now()->month);
 
-        $report = $this->monthlyReportService->generate($year, $month, $user->id);
-        $incomeByCategory = $this->reportService->getIncomeByCategory($user->id, $year, $month);
-        $expensesByCategory = $this->reportService->getExpensesByCategory($user->id, $year, $month);
-        $incomeByClient = $this->reportService->getIncomeByClient($user->id, $year, $month);
+        $report = $this->monthlyReportService->generate($year, $month, $ownerId);
+        $incomeByCategory = $this->reportService->getIncomeByCategory($ownerId, $year, $month);
+        $expensesByCategory = $this->reportService->getExpensesByCategory($ownerId, $year, $month);
+        $incomeByClient = $this->reportService->getIncomeByClient($ownerId, $year, $month);
 
         return view('reports.index', compact(
             'report', 'incomeByCategory', 'expensesByCategory', 'incomeByClient', 'year', 'month'
         ));
     }
 
-    /**
-     * Exporta o relatório mensal em PDF (RF12).
-     */
     public function exportPdf(Request $request)
     {
-        $user = $request->user();
-        $year = $request->get('year', now()->year);
-        $month = $request->get('month', now()->month);
+        $this->authorize('export', \App\Models\MonthlyReport::class);
 
-        $report = $this->monthlyReportService->generate($year, $month, $user->id);
+        $ownerId = $request->user()->dataOwnerId();
+        $year = (int) $request->get('year', now()->year);
+        $month = (int) $request->get('month', now()->month);
+
+        $report = $this->monthlyReportService->generate($year, $month, $ownerId);
 
         return $this->monthlyReportService->downloadPdf($report);
     }
 
-    /**
-     * Fecha o relatório mensal (imutável).
-     */
     public function close(Request $request)
     {
         $user = $request->user();
-        $year = $request->get('year', now()->year);
-        $month = $request->get('month', now()->month);
+        $ownerId = $user->dataOwnerId();
+        $year = (int) $request->get('year', now()->year);
+        $month = (int) $request->get('month', now()->month);
 
-        $report = $this->monthlyReportService->generate($year, $month, $user->id);
+        $report = $this->monthlyReportService->generate($year, $month, $ownerId);
+        $this->authorize('close', $report);
 
         try {
             $this->monthlyReportService->close($report, $user->id);
@@ -74,15 +70,39 @@ class ReportController extends Controller
         }
     }
 
-    /**
-     * Projeção de fluxo de caixa (RF11).
-     */
     public function cashFlow(Request $request)
     {
-        $user = $request->user();
+        $ownerId = $request->user()->dataOwnerId();
         $months = (int) $request->get('months', 6);
-        $projection = $this->cashFlowService->project($user->id, $months);
+        $projection = $this->cashFlowService->project($ownerId, $months);
 
         return view('reports.cash-flow', compact('projection', 'months'));
+    }
+
+    public function clientPayments(Request $request)
+    {
+        $ownerId = $request->user()->dataOwnerId();
+        $year = (int) $request->get('year', now()->year);
+        $month = (int) $request->get('month', now()->month);
+
+        $paymentsByClient = $this->reportService->getPaymentsByClient($ownerId, $year, $month);
+
+        return view('reports.client-payments', compact('paymentsByClient', 'year', 'month'));
+    }
+
+    public function accounting(Request $request)
+    {
+        $ownerId = $request->user()->dataOwnerId();
+        $year = (int) $request->get('year', now()->year);
+        $month = (int) $request->get('month', now()->month);
+        $type = $request->get('type', 'BOTH');
+
+        if (! in_array($type, ['INCOME', 'EXPENSE', 'BOTH'], true)) {
+            $type = 'BOTH';
+        }
+
+        $accounting = $this->reportService->getAccountingReport($ownerId, $year, $month, $type);
+
+        return view('reports.accounting', compact('accounting', 'year', 'month', 'type'));
     }
 }

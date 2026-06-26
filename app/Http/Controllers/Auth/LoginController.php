@@ -39,6 +39,7 @@ class LoginController extends Controller
         $authCredentials = [
             'email' => $credentials['email'],
             'password' => $credentials['password'],
+            'is_active' => true,
         ];
 
         if (Auth::attempt($authCredentials, $request->boolean('remember'))) {
@@ -51,7 +52,7 @@ class LoginController extends Controller
         }
 
         return back()->withErrors([
-            'email' => 'Credenciais inválidas.',
+            'email' => 'Credenciais inválidas ou conta inativa.',
         ])->onlyInput('email');
     }
 

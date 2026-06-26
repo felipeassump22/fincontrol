@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,13 +10,18 @@ use Illuminate\Validation\Rule;
  * Request: StoreTransactionRequest
  *
  * Validação server-side para criação/atualização de lançamentos.
- * RF20 / RF21 — Suporte a compras no cartão com parcelas.
  */
 class StoreTransactionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        if ($this->isMethod('post')) {
+            return $this->user()?->can('create', \App\Models\Transaction::class) ?? false;
+        }
+
+        $transaction = $this->route('transaction');
+
+        return $transaction && $this->user()?->can('update', $transaction);
     }
 
     public function rules(): array
@@ -30,10 +36,16 @@ class StoreTransactionRequest extends FormRequest
                 'nullable',
                 'date',
             ],
+            'competence_date' => 'nullable|date',
             'purchase_date' => [
                 Rule::requiredIf($hasCreditCard),
                 'nullable',
                 'date',
+            ],
+            'payment_method' => [
+                Rule::requiredIf(! $hasCreditCard),
+                'nullable',
+                Rule::in(['PIX', 'BOLETO', 'CARTAO', 'TRANSFERENCIA', 'DINHEIRO', 'OUTRO']),
             ],
             'installments' => [
                 Rule::requiredIf($hasCreditCard),
@@ -43,11 +55,36 @@ class StoreTransactionRequest extends FormRequest
                 'max:48',
             ],
             'transaction_type' => 'required|in:INCOME,EXPENSE',
-            'status' => 'nullable|in:PENDING,PAID',
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'credit_card_id' => 'nullable|exists:credit_cards,id',
-            'client_id' => 'nullable|exists:clients,id',
-            'category_id' => 'nullable|exists:categories,id',
+            'client_id' => [
+                'nullable',
+                'exists:clients,id',
+                function ($attribute, $value, $fail) {
+                    if ($this->input('transaction_type') !== 'INCOME' || ! $this->filled('category_id')) {
+                        return;
+                    }
+
+                    $category = Category::find($this->input('category_id'));
+                    if ($category?->requires_client && empty($value)) {
+                        $fail(__('Esta categoria exige a seleção de um cliente.'));
+                    }
+                },
+            ],
+            'category_id' => [
+                'nullable',
+                'exists:categories,id',
+                function ($attribute, $value, $fail) {
+                    if (! $value) {
+                        return;
+                    }
+
+                    $category = Category::find($value);
+                    if ($category && ! $category->appliesToTransactionType($this->input('transaction_type'))) {
+                        $fail(__('A categoria selecionada não é compatível com o tipo do lançamento.'));
+                    }
+                },
+            ],
             'invoice_document' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:5120',
             'is_recurring' => 'nullable|boolean',
         ];
@@ -60,6 +97,8 @@ class StoreTransactionRequest extends FormRequest
             'amount.required' => 'O valor é obrigatório.',
             'amount.min' => 'O valor deve ser maior que zero.',
             'due_date.required' => 'A data de vencimento é obrigatória.',
+            'competence_date.date' => 'Informe uma data de competência válida.',
+            'payment_method.required' => 'O método de pagamento é obrigatório.',
             'purchase_date.required' => 'A data da compra é obrigatória para lançamentos no cartão.',
             'installments.required' => 'Informe o número de parcelas.',
             'installments.min' => 'Informe pelo menos 1 parcela.',

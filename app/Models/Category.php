@@ -17,6 +17,11 @@ class Category extends Model
     protected $fillable = [
         'name',
         'type',
+        'requires_client',
+    ];
+
+    protected $casts = [
+        'requires_client' => 'boolean',
     ];
 
     // ─── Relacionamentos ──────────────────────────
@@ -36,5 +41,20 @@ class Category extends Model
     public function scopeExpense($query)
     {
         return $query->where('type', 'EXPENSE');
+    }
+
+    /**
+     * Categorias aplicáveis a um tipo de lançamento.
+     */
+    public function scopeForTransactionType($query, string $transactionType)
+    {
+        return $query->where(function ($q) use ($transactionType) {
+            $q->where('type', $transactionType)->orWhere('type', 'BOTH');
+        });
+    }
+
+    public function appliesToTransactionType(string $transactionType): bool
+    {
+        return $this->type === 'BOTH' || $this->type === $transactionType;
     }
 }

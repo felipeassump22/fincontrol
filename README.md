@@ -43,7 +43,9 @@ O **FinControl** surgiu de um problema real: ferramentas financeiras são ou **s
 - 💳 **Monitora** o limite de múltiplos cartões de crédito em tempo real
 - ⚙️ **Automatiza** despesas recorrentes (aluguel, assinaturas, salários) sem você precisar fazer nada
 - 📈 **Acompanha** o rendimento dos seus investimentos (CDB, Tesouro Direto)
-- 📄 **Exporta** relatórios gerenciais profissionais em PDF
+- 📄 **Exporta** relatórios gerenciais profissionais em PDF com dados da sua empresa
+- 🔄 **Estorna** lançamentos pagos com transação inversa rastreável
+- ⚙️ **Configura** moeda, idioma, tema e dados da empresa numa central dedicada
 - 🕵️ **Registra** um log completo de tudo que foi alterado no sistema
 
 
@@ -125,11 +127,11 @@ Agora precisamos criar as tabelas no banco e colocar alguns dados de exemplo pra
 docker compose exec app php artisan migrate:fresh --seed
 ```
 
-Esse comando cria **14 tabelas** e insere automaticamente:
-- 👤 3 usuários de teste (admin e usuários comuns)
+Esse comando cria **15 tabelas** e insere automaticamente:
+- 👤 4 usuários de teste (admin, financeiro e visualizadores)
 - 🏦 Contas bancárias com saldos de demonstração
 - 💳 Cartões de crédito com faturas e parcelas
-- 📊 Histórico de transações do mês atual
+- 📊 Histórico de transações em maio/2025 e no mês atual
 - 💰 Investimentos e despesas recorrentes
 
 ---
@@ -142,10 +144,11 @@ Esse comando cria **14 tabelas** e insere automaticamente:
 | 🛠️ **Gerenciador do Banco** | [http://localhost:8080](http://localhost:8080) | Usuário: `root` — Senha: `rootpass123` |
 
 > [!TIP]
-> **3 usuários disponíveis para teste após o seed:**
+> **4 usuários disponíveis para teste após o seed:**
 > | 👤 Usuário | 📧 E-mail | 🔑 Senha | 🎭 Perfil | ✅ Status |
 > |:---|:---|:---|:---|:---:|
 > | João Admin | `joao@empresa.com.br` | `admin123` | Administrador | Ativo |
+> | Ana Financeiro | `financeiro@empresa.com.br` | `financeiro123` | Financeiro | Ativo |
 > | Maria Viewer | `maria@empresa.com.br` | `viewer123` | Visualizador | Ativo |
 > | Carlos Silva | `carlos@empresa.com.br` | `viewer123` | Visualizador | **Inativo** 🔒 |
 
@@ -176,29 +179,36 @@ O sistema possui um controle de acesso por **papéis (Roles)**, onde cada usuár
 
 | Perfil | Descrição |
 |:---|:---|
-| 👑 **Administrador** | Acesso total ao sistema. Pode criar, editar, excluir e marcar lançamentos como pagos. |
+| 👑 **Administrador** | Acesso total. Pode criar, editar (inclusive pagos/conciliados), excluir e estornar lançamentos. |
+| 💼 **Financeiro** | Pode registrar e gerenciar lançamentos, mas **só edita pendentes**. Não altera pagos nem conciliados. |
 | 👁️ **Visualizador** | Pode visualizar dados, relatórios e projeções, mas **não pode criar, editar nem excluir** lançamentos. |
 
 ---
 
 ### 🔐 Mapa de Permissões por Ação
 
-| Ação | 👑 Administrador | 👁️ Visualizador |
-|:---|:---:|:---:|
-| Visualizar lançamentos | ✅ | ✅ |
-| Visualizar relatórios e projeções | ✅ | ✅ |
-| Criar novo lançamento | ✅ | ❌ |
-| Editar lançamento pendente | ✅ | ❌ |
-| Editar lançamento **pago** | ❌ | ❌ |
-| Excluir lançamento | ✅ | ❌ |
-| Marcar lançamento como pago | ✅ | ❌ |
-| Gerenciar contas bancárias | ✅ | ❌ |
-| Gerenciar cartões de crédito | ✅ | ❌ |
-| Cadastrar categorias e clientes | ✅ | ❌ |
-| Exportar PDF | ✅ | ✅ |
+| Ação | 👑 Administrador | 💼 Financeiro | 👁️ Visualizador |
+|:---|:---:|:---:|:---:|
+| Visualizar lançamentos | ✅ | ✅ | ✅ |
+| Visualizar relatórios e projeções | ✅ | ✅ | ✅ |
+| Criar novo lançamento | ✅ | ✅ | ❌ |
+| Editar lançamento pendente | ✅ | ✅ | ❌ |
+| Editar lançamento **pago/conciliado** | ✅ | ❌ | ❌ |
+| Excluir lançamento | ✅ | ❌ | ❌ |
+| Marcar como pago / conciliar / cancelar | ✅ | ✅ | ❌ |
+| Estornar lançamento pago | ✅ | ✅ | ❌ |
+| Gerenciar contas bancárias | ✅ | ✅ | ❌ |
+| Desativar/reativar contas | ✅ | ✅ | ❌ |
+| Gerenciar cartões de crédito | ✅ | ✅ | ❌ |
+| Cadastrar categorias e clientes | ✅ | ✅ | ❌ |
+| Configurar dados da empresa (PDF) | ✅ | ✅ | ❌ |
+| Alterar moeda pessoal | ✅ | ✅ | ✅ |
+| Exportar PDF | ✅ | ✅ | ✅ |
+| Fechar relatório mensal | ✅ | ❌ | ❌ |
+| Ver auditoria do sistema | ✅ | ❌ | ❌ |
 
 > [!CAUTION]
-> **Regra de ouro do sistema:** mesmo o Administrador **não consegue editar um lançamento marcado como PAGO**. Essa trava é implementada diretamente no `TransactionService` no servidor — não é apenas um botão desativado na tela. Mesmo que alguém tente via Postman ou manipulação de URL, a requisição é rejeitada com `403 Forbidden`.
+> **Regra de proteção de lançamentos:** o perfil **Financeiro** não consegue editar lançamentos **pagos ou conciliados** — a trava está no `TransactionPolicy` e no `TransactionService`, não apenas na interface. O **Administrador** pode editar qualquer status (exceto cancelados). Mesmo que alguém tente via Postman, o Financeiro recebe `403 Forbidden`.
 
 ---
 
@@ -207,11 +217,14 @@ O sistema possui um controle de acesso por **papéis (Roles)**, onde cada usuár
 | # | 👤 Nome | 📧 E-mail | 🔑 Senha | 🎭 Perfil | Status |
 |:---:|:---|:---|:---|:---|:---:|
 | 1 | João Admin | `joao@empresa.com.br` | `admin123` | 👑 Administrador | 🟢 Ativo |
-| 2 | Maria Viewer | `maria@empresa.com.br` | `viewer123` | 👁️ Visualizador | 🟢 Ativo |
-| 3 | Carlos Silva | `carlos@empresa.com.br` | `viewer123` | 👁️ Visualizador | 🔴 Inativo |
+| 2 | Ana Financeiro | `financeiro@empresa.com.br` | `financeiro123` | 💼 Financeiro | 🟢 Ativo |
+| 3 | Maria Viewer | `maria@empresa.com.br` | `viewer123` | 👁️ Visualizador | 🟢 Ativo |
+| 4 | Carlos Silva | `carlos@empresa.com.br` | `viewer123` | 👁️ Visualizador | 🔴 Inativo |
 
 > [!NOTE]
 > O usuário **Carlos Silva** está marcado como `is_active = false` no banco. Isso significa que ele existe mas **não consegue fazer login** — serve para demonstrar a desativação de usuários sem precisar excluí-los do sistema.
+>
+> **Dados compartilhados:** Financeiro e Visualizador visualizam os **mesmos lançamentos, contas e relatórios** do Administrador da empresa. Cada perfil mantém apenas preferências pessoais (moeda e tema) separadas.
 
 ---
 
@@ -224,8 +237,9 @@ O sistema possui um controle de acesso por **papéis (Roles)**, onde cada usuár
 | Funcionalidade | Como foi feito |
 |:---|:---|
 | Login por e-mail e senha | Senhas protegidas com `Bcrypt` — o mesmo padrão do GitHub e do Nubank |
-| Proteção de rotas | Middleware `auth` bloqueia qualquer tentativa de acesso sem login, redirecionando para a tela de login |
-| Anti-fraude em lançamentos | Lançamentos marcados como **"Pagos"** ficam congelados. Nem via URL manipulada ou Postman é possível alterá-los |
+| Bloqueio de inativos | Usuários com `is_active = false` não conseguem autenticar |
+| Proteção de rotas | Middleware `auth` e `role:Administrador` conforme o módulo |
+| Controle por perfil | Policies em transações, contas, clientes, cartões e relatórios |
 | Proteção CSRF | Tokens anti-falsificação em todos os formulários (padrão Laravel) |
 
 </details>
@@ -236,9 +250,14 @@ O sistema possui um controle de acesso por **papéis (Roles)**, onde cada usuár
 
 | Funcionalidade | Como foi feito |
 |:---|:---|
-| Múltiplas contas bancárias | Cada conta tem seu saldo individual, atualizado atomicamente a cada lançamento |
-| Lançamentos (receitas/despesas) | CRUD completo com categoria, cliente, conta, status e anexo de nota fiscal |
-| Alerta de saldo negativo | A interface inteira muda de cor quando uma conta fica abaixo de R$ 0,00 |
+| Múltiplas contas bancárias | Cada conta tem saldo individual, agência, número, Pix e documento |
+| Desativar conta (sem excluir) | `BankAccountService::deactivate()` preserva lançamentos; contas inativas somem dos selects |
+| Lançamentos (receitas/despesas) | CRUD com categoria, cliente, competência, método de pagamento e anexo de NF |
+| Status completos | `PENDING`, `PAID`, `CANCELED`, `RECONCILED` — com fluxos de pagar, conciliar e cancelar |
+| Filtros rápidos | Hoje, esta semana, este mês e mês anterior via `resolvePeriodFilters()` |
+| Estorno de lançamento | `TransactionService::reverse()` cria transação inversa vinculada por `reversal_of_id` |
+| Categorias BOTH | Categorias que servem para receita e despesa, com flag `requires_client` |
+| Alerta de saldo negativo | A interface destaca contas ativas com saldo abaixo de R$ 0,00 |
 | Anexo de comprovantes | Upload de NFs e comprovantes por lançamento, com download avulso |
 | Atualização atômica de saldo | O `BankAccountService` usa operações atômicas (`increment/decrement`) para evitar erros em múltiplos acessos simultâneos |
 
@@ -253,6 +272,34 @@ O sistema possui um controle de acesso por **papéis (Roles)**, onde cada usuár
 | Múltiplos cartões | Cada cartão tem seu limite, data de fechamento e fatura mensal independente |
 | Parcelamento inteligente | O `InstallmentService` divide o valor em parcelas e usa um algoritmo de absorção de centavos para garantir que a soma seja sempre exata (sem R$ 0,01 de diferença por arredondamento) |
 | Limite disponível em tempo real | Calcula o uso atual somando todas as faturas abertas e parcelas pendentes |
+| Status de fatura | `ABERTA`, `FECHADA` e `PAGA` para controle do ciclo de fechamento |
+
+</details>
+
+<details>
+<summary><b>👥 Clientes</b> — clique para expandir</summary>
+<br>
+
+| Funcionalidade | Como foi feito |
+|:---|:---|
+| Cadastro completo | CPF/CNPJ com validação de dígitos verificadores no `ClientController` |
+| Endereço com ViaCEP | Busca automática de logradouro, bairro, cidade e UF pelo CEP |
+| Vínculo com receitas | Cliente obrigatório em categorias marcadas com `requires_client` |
+
+</details>
+
+<details>
+<summary><b>📈 Dashboard Inteligente</b> — clique para expandir</summary>
+<br>
+
+| Funcionalidade | Como foi feito |
+|:---|:---|
+| Seletor de período | Filtro por mês/ano no topo do painel |
+| Métricas com comparativo | Receitas, despesas e saldo líquido com variação % vs mês anterior |
+| Gráfico Receitas vs Despesas | Dados reais do período agrupados por dia (`ReportService::getIncomeExpenseByDay`) |
+| Projeção embutida | Gráfico de fluxo de caixa para os próximos 6 meses no próprio dashboard |
+| Receitas por categoria/cliente | Barras de progresso e tabela com participação percentual |
+| Exportar PDF rápido | Atalho direto do dashboard para o relatório mensal |
 
 </details>
 
@@ -263,7 +310,7 @@ O sistema possui um controle de acesso por **papéis (Roles)**, onde cada usuár
 | Funcionalidade | Como foi feito |
 |:---|:---|
 | Projeção algorítmica | O `CashFlowProjectionService` calcula a **média histórica** dos últimos 3 meses e projeta o saldo estimado para 1, 3, 6 ou 12 meses à frente |
-| Filtro por conta e período | Permite analisar a projeção de uma conta específica num intervalo personalizado |
+| Filtro por conta e período | Permite analisar a projeção de uma conta específica num intervalo personalizado (`/reports/cash-flow`) |
 | Rentabilidade de investimentos | Calcula o rendimento de CDBs e Tesouro Direto com base na taxa e data de início |
 
 </details>
@@ -285,8 +332,26 @@ Tecnicamente, o `RecurringExpenseService` é chamado por um **CRON Job** agendad
 | Funcionalidade | Como foi feito |
 |:---|:---|
 | Receitas por categoria | Mostra percentualmente de qual categoria vem o maior faturamento |
-| Receitas por cliente | Identifica seus clientes mais rentáveis em gráfico de barras |
-| Relatório mensal em PDF | Exporta um relatório gerencial profissional com resumo financeiro, totalizadores e tabela de lançamentos |
+| Receitas por cliente | Identifica seus clientes mais rentáveis com participação % |
+| Pagamentos por cliente | Relatório segmentado por status: pago, pendente e cancelado (`/reports/client-payments`) |
+| Relatório contábil | Filtro por ENTRADA, SAÍDA ou AMBOS com totais e listagem (`/reports/accounting`) |
+| Fechamento mensal | `POST /reports/close` torna o relatório imutável após o fechamento |
+| Relatório mensal em PDF | Exporta relatório gerencial com cabeçalho da empresa (`company_settings`) |
+| Projeção de caixa | Página dedicada com horizonte de 1, 3, 6 ou 12 meses |
+
+</details>
+
+<details>
+<summary><b>🎛️ Central de Configurações</b> — clique para expandir</summary>
+<br>
+
+| Funcionalidade | Como foi feito |
+|:---|:---|
+| Tema visual | Claro, Escuro, AMOLED ou Sistema — persistido em `localStorage` |
+| Moeda padrão | BRL, USD, EUR ou GBP por usuário — afeta helper `money()` em toda a interface |
+| Idioma | Português (BR) e English (US) via `LanguageController` |
+| Dados da empresa | Razão social, CNPJ, endereço e contatos salvos em `company_settings` para o PDF |
+| ViaCEP | Preenchimento automático de endereço no formulário da empresa |
 
 </details>
 
@@ -371,7 +436,7 @@ graph TD
 
 ## 🗄️ Banco de Dados
 
-O sistema possui **14 tabelas** organizadas em módulos lógicos:
+O sistema possui **15 tabelas** organizadas em módulos lógicos:
 
 ```mermaid
 erDiagram
@@ -437,8 +502,16 @@ erDiagram
         json old_values
         json new_values
     }
+    company_settings {
+        bigint id PK
+        bigint user_id FK
+        string company_name
+        string document
+        string city
+    }
 
     users ||--o{ bank_accounts : "tem"
+    users ||--o{ company_settings : "configura"
     users ||--o{ transactions : "faz"
     users ||--o{ credit_cards : "possui"
     users ||--o{ investments : "faz"
@@ -495,22 +568,26 @@ fincontrol/
 │
 ├── 📂 app/
 │   ├── 📂 Console/Commands/       # Comando para gerar recorrências mensais
-│   ├── 📂 Http/Controllers/       # 12 Controllers (um por tela do sistema)
-│   ├── 📂 Models/                 # 13 Models Eloquent (tabelas do banco)
+│   ├── 📂 Enums/                  # Status, tipos e métodos de pagamento tipados
+│   ├── 📂 Http/Controllers/       # 15+ Controllers (um por módulo do sistema)
+│   ├── 📂 Models/                 # 14 Models Eloquent (tabelas do banco)
+│   ├── 📂 Policies/               # Controle de acesso por perfil (Admin/Financeiro/Viewer)
 │   └── 📂 Services/               # 9 Services com toda a lógica de negócio
 │
 ├── 📂 database/
-│   ├── 📂 migrations/             # 14 Migrations (estrutura do banco)
+│   ├── 📂 migrations/             # 20 Migrations (estrutura evolutiva do banco)
 │   └── 📂 seeders/                # Dados de demonstração gerados automaticamente
 │
 ├── 📂 resources/
 │   ├── 📂 lang/                   # Traduções PT-BR e EN
 │   └── 📂 views/                  # Templates Blade (HTML da aplicação)
 │       ├── layouts/               # Sidebar, Topbar e sistema de temas
-│       ├── dashboard/             # Painel principal
+│       ├── dashboard/             # Painel principal com gráficos
 │       ├── transactions/          # Tela de lançamentos
 │       ├── bank-accounts/         # Contas bancárias
 │       ├── credit-cards/          # Cartões de crédito
+│       ├── clients/               # Cadastro de clientes
+│       ├── settings/              # Central de configurações
 │       ├── reports/               # Relatórios e projeções
 │       └── reports/pdf/           # Template do PDF exportável
 │

@@ -17,6 +17,15 @@ class Client extends Model
 {
     protected $fillable = [
         'name',
+        'document_type',
+        'document',
+        'zip_code',
+        'street',
+        'number',
+        'complement',
+        'neighborhood',
+        'city',
+        'state',
         'user_id',
     ];
 

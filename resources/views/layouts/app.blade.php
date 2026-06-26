@@ -5,9 +5,35 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @auth
+    <meta name="fincontrol-currency" content="{{ user_currency() }}" data-turbo-track="reload">
+    <meta name="fincontrol-chart-locale" content="{{ chart_locale() }}" data-turbo-track="reload">
+    @endauth
+    <script data-turbo-eval="false">
+        window.getFincontrolCurrency = function () {
+            var meta = document.querySelector('meta[name="fincontrol-currency"]');
+            return meta && meta.content ? meta.content : 'BRL';
+        };
+        window.getFincontrolChartLocale = function () {
+            var meta = document.querySelector('meta[name="fincontrol-chart-locale"]');
+            return meta && meta.content ? meta.content : 'pt-BR';
+        };
+        window.formatChartCurrency = function (value, compact) {
+            var options = {
+                style: 'currency',
+                currency: window.getFincontrolCurrency(),
+            };
+            if (compact) {
+                options.notation = 'compact';
+            }
+            return new Intl.NumberFormat(window.getFincontrolChartLocale(), options).format(value);
+        };
+    </script>
     <script>
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', savedTheme);
+        (function () {
+            var savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+        })();
     </script>
     <title>@yield('title', 'FinControl') — Gestão Financeira</title>
     <meta name="description" content="Sistema de gestão financeira empresarial">
@@ -131,9 +157,17 @@
                     <a href="{{ route('reports.cash-flow') }}" class="nav-item {{ request()->routeIs('reports.cash-flow') ? 'active' : '' }}">
                         <i class="ti ti-trending-up"></i>{{ __('Fluxo de caixa') }}
                     </a>
+                    <a href="{{ route('reports.accounting') }}" class="nav-item {{ request()->routeIs('reports.accounting') ? 'active' : '' }}">
+                        <i class="ti ti-file-text"></i>{{ __('Relatório contábil') }}
+                    </a>
+                    <a href="{{ route('reports.client-payments') }}" class="nav-item {{ request()->routeIs('reports.client-payments') ? 'active' : '' }}">
+                        <i class="ti ti-users"></i>{{ __('Pagamentos por cliente') }}
+                    </a>
+                    @if(auth()->user()->isAdmin())
                     <a href="{{ route('audit.index') }}" class="nav-item {{ request()->routeIs('audit.*') ? 'active' : '' }}">
                         <i class="ti ti-history"></i>{{ __('Auditoria') }}
                     </a>
+                    @endif
                 </div>
                 <div class="divider" style="margin: 4px 16px; opacity: 0.5;"></div>
                 <div class="nav-section">
@@ -174,95 +208,13 @@
 
     </div>
 
-    {{-- Toast notifications --}}
-    <div class="toast" id="toast">
+    {{-- Toast notifications (persiste entre navegações Turbo) --}}
+    <div class="toast" id="toast" data-turbo-permanent>
         <i class="ti ti-circle-check"></i>
         <span id="toast-msg"></span>
     </div>
 
-    <script>
-        document.addEventListener('turbo:load', () => {
-            // Theme Toggle Logic
-            const toggleBtn = document.getElementById('theme-toggle');
-            const themeIcon = document.getElementById('theme-icon');
-            const html = document.documentElement;
-
-            const updateIcon = (theme) => {
-                if (theme === 'amoled') {
-                    themeIcon.classList.remove('ti-moon');
-                    themeIcon.classList.add('ti-sun');
-                } else {
-                    themeIcon.classList.remove('ti-sun');
-                    themeIcon.classList.add('ti-moon');
-                }
-            };
-
-            if (toggleBtn && themeIcon) {
-                updateIcon(html.getAttribute('data-theme'));
-                toggleBtn.addEventListener('click', () => {
-                    const currentTheme = html.getAttribute('data-theme');
-                    const newTheme = currentTheme === 'amoled' ? 'light' : 'amoled';
-
-                    // Ativar transição suave
-                    html.setAttribute('data-theme-transitioning', '');
-                    html.setAttribute('data-theme', newTheme);
-                    localStorage.setItem('theme', newTheme);
-                    updateIcon(newTheme);
-
-                    // Remover a flag de transição depois que terminar
-                    setTimeout(() => html.removeAttribute('data-theme-transitioning'), 600);
-                });
-            }
-        });
-
-        const toast = document.getElementById('toast');
-        if (toast) {
-            setTimeout(() => toast.classList.add('show'), 100);
-            setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
-        }
-    </script>
-
-    <script>
-        // ─── Toast ────────────────────────────────────
-        let toastTimer;
-
-        function showToast(msg, type = 'success') {
-            const toast = document.getElementById('toast');
-            document.getElementById('toast-msg').textContent = msg;
-            toast.className = 'toast' + (type === 'error' ? ' toast-error' : '');
-            toast.classList.add('show');
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // ─── Modal ────────────────────────────────────
-        function openModal(id) {
-            document.getElementById(id).classList.add('open');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('open');
-        }
-
-        // Fechar modal com ESC
-        document.addEventListener('keydown', e => {
-            if (e.key === 'Escape') {
-                document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
-            }
-        });
-
-        // Fechar modal clicando fora
-        document.querySelectorAll('.modal-overlay').forEach(overlay => {
-            overlay.addEventListener('click', e => {
-                if (e.target === overlay) overlay.classList.remove('open');
-            });
-        });
-    </script>
-
-    {{-- Flash Messages Invisíveis (Para o JS ler sem gerar erro no VS Code) --}}
+    {{-- Flash Messages Invisíveis --}}
     @if(session('success'))
     <div id="flash-success" data-message="{{ session('success') }}" style="display:none;"></div>
     @endif
@@ -270,85 +222,182 @@
     <div id="flash-error" data-message="{{ session('error') }}" style="display:none;"></div>
     @endif
 
-    <script>
-        // ─── Flash Messages ────────────────────────────
-        const flashSuccess = document.getElementById('flash-success');
-        if (flashSuccess) {
-            showToast(flashSuccess.getAttribute('data-message'));
-        }
-
-        const flashError = document.getElementById('flash-error');
-        if (flashError) {
-            showToast(flashError.getAttribute('data-message'), 'error');
-        }
-    </script>
-
     {{-- Botão Menu Mobile --}}
-    <button class="mobile-menu-btn" id="mobile-menu-btn" onclick="toggleMobileMenu()">
+    <button class="mobile-menu-btn" id="mobile-menu-btn" data-turbo-permanent>
         <i class="ti ti-menu-2" style="font-size:24px;"></i>
     </button>
 
-    <script>
-        function toggleMobileMenu() {
-            document.querySelector('.sidebar').classList.toggle('open');
-        }
-
-        // Fechar menu ao clicar fora dele na versão mobile
-        document.addEventListener('click', function(e) {
-            const sidebar = document.querySelector('.sidebar');
-            const btn = document.getElementById('mobile-menu-btn');
-            if (sidebar && sidebar.classList.contains('open') && !sidebar.contains(e.target) && !btn.contains(e.target)) {
-                sidebar.classList.remove('open');
-            }
-        });
-    </script>
-
     @stack('scripts')
 
-    <script>
-        // ─── Engine de Temas ───────────────────────────
-        function setTheme(mode) {
-            localStorage.setItem('theme', mode);
-            let activeTheme = mode;
-            if (mode === 'system') {
-                activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    <script data-turbo-eval="false">
+        (function () {
+            if (window.__fincontrolAppBound) {
+                return;
             }
-            document.documentElement.setAttribute('data-theme', activeTheme);
-            updateThemeUI(mode);
-        }
+            window.__fincontrolAppBound = true;
 
-        function updateThemeUI(mode) {
-            document.querySelectorAll('.theme-btn').forEach(btn => {
-                btn.style.background = 'transparent';
-                btn.style.color = 'var(--color-text-tertiary)';
-                btn.style.boxShadow = 'none';
+            window.__fincontrolToastTimer = null;
+
+            window.showToast = function (msg, type) {
+                type = type || 'success';
+                var toast = document.getElementById('toast');
+                var toastMsg = document.getElementById('toast-msg');
+                if (!toast || !toastMsg) {
+                    return;
+                }
+                toastMsg.textContent = msg;
+                toast.className = 'toast' + (type === 'error' ? ' toast-error' : '');
+                toast.classList.add('show');
+                clearTimeout(window.__fincontrolToastTimer);
+                window.__fincontrolToastTimer = setTimeout(function () {
+                    toast.classList.remove('show');
+                }, 3000);
+            };
+
+            window.openModal = function (id) {
+                var modal = document.getElementById(id);
+                if (modal) {
+                    modal.classList.add('open');
+                }
+            };
+
+            window.closeModal = function (id) {
+                var modal = document.getElementById(id);
+                if (modal) {
+                    modal.classList.remove('open');
+                }
+            };
+
+            window.toggleMobileMenu = function () {
+                var sidebar = document.querySelector('.sidebar');
+                if (sidebar) {
+                    sidebar.classList.toggle('open');
+                }
+            };
+
+            window.setTheme = function (mode) {
+                localStorage.setItem('theme', mode);
+                var activeTheme = mode;
+                if (mode === 'system') {
+                    activeTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                document.documentElement.setAttribute('data-theme', activeTheme);
+                window.updateThemeUI(mode);
+            };
+
+            window.updateThemeUI = function (mode) {
+                document.querySelectorAll('.theme-btn').forEach(function (btn) {
+                    btn.style.background = 'transparent';
+                    btn.style.color = 'var(--color-text-tertiary)';
+                    btn.style.boxShadow = 'none';
+                });
+                var activeBtn = document.querySelector('.theme-btn[data-mode="' + mode + '"]');
+                if (activeBtn) {
+                    activeBtn.style.background = 'var(--color-background-primary)';
+                    activeBtn.style.color = 'var(--color-text-primary)';
+                    activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+                }
+            };
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') {
+                    document.querySelectorAll('.modal-overlay.open').forEach(function (m) {
+                        m.classList.remove('open');
+                    });
+                }
             });
-            const activeBtn = document.querySelector(`.theme-btn[data-mode="${mode}"]`);
-            if (activeBtn) {
-                activeBtn.style.background = 'var(--color-background-primary)';
-                activeBtn.style.color = 'var(--color-text-primary)';
-                activeBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
+
+            document.addEventListener('click', function (e) {
+                var sidebar = document.querySelector('.sidebar');
+                var btn = document.getElementById('mobile-menu-btn');
+                if (sidebar && sidebar.classList.contains('open') && btn &&
+                    !sidebar.contains(e.target) && !btn.contains(e.target)) {
+                    sidebar.classList.remove('open');
+                }
+            });
+
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function (e) {
+                if (localStorage.getItem('theme') === 'system' || !localStorage.getItem('theme')) {
+                    document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+                }
+            });
+
+            document.cookie = 'client_tz=' + Intl.DateTimeFormat().resolvedOptions().timeZone + '; path=/; max-age=31536000';
+
+            if (!window.__fincontrolTurboLoadBound) {
+                window.__fincontrolTurboLoadBound = true;
+                document.addEventListener('turbo:load', function () {
+                    var toggleBtn = document.getElementById('theme-toggle');
+                    var themeIcon = document.getElementById('theme-icon');
+                    var html = document.documentElement;
+                    var mobileBtn = document.getElementById('mobile-menu-btn');
+
+                    if (mobileBtn && !mobileBtn.dataset.bound) {
+                        mobileBtn.dataset.bound = '1';
+                        mobileBtn.addEventListener('click', window.toggleMobileMenu);
+                    }
+
+                    var updateIcon = function (theme) {
+                        if (!themeIcon) {
+                            return;
+                        }
+                        if (theme === 'amoled') {
+                            themeIcon.classList.remove('ti-moon');
+                            themeIcon.classList.add('ti-sun');
+                        } else {
+                            themeIcon.classList.remove('ti-sun');
+                            themeIcon.classList.add('ti-moon');
+                        }
+                    };
+
+                    if (toggleBtn && !toggleBtn.dataset.bound) {
+                        toggleBtn.dataset.bound = '1';
+                        updateIcon(html.getAttribute('data-theme'));
+                        toggleBtn.addEventListener('click', function () {
+                            var currentTheme = html.getAttribute('data-theme');
+                            var newTheme = currentTheme === 'amoled' ? 'light' : 'amoled';
+                            html.setAttribute('data-theme-transitioning', '');
+                            html.setAttribute('data-theme', newTheme);
+                            localStorage.setItem('theme', newTheme);
+                            updateIcon(newTheme);
+                            setTimeout(function () {
+                                html.removeAttribute('data-theme-transitioning');
+                            }, 600);
+                        });
+                    }
+
+                    document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+                        if (overlay.dataset.bound) {
+                            return;
+                        }
+                        overlay.dataset.bound = '1';
+                        overlay.addEventListener('click', function (e) {
+                            if (e.target === overlay) {
+                                overlay.classList.remove('open');
+                            }
+                        });
+                    });
+
+                    var flashSuccess = document.getElementById('flash-success');
+                    if (flashSuccess) {
+                        window.showToast(flashSuccess.getAttribute('data-message'));
+                        flashSuccess.remove();
+                    }
+
+                    var flashError = document.getElementById('flash-error');
+                    if (flashError) {
+                        window.showToast(flashError.getAttribute('data-message'), 'error');
+                        flashError.remove();
+                    }
+
+                    window.updateThemeUI(localStorage.getItem('theme') || 'system');
+
+                    if (typeof window.initDashboardPage === 'function') {
+                        window.initDashboardPage();
+                    }
+                });
             }
-        }
-
-        // Inicializa UI
-        document.addEventListener("turbo:load", function() {
-            const saved = localStorage.getItem('theme') || 'system';
-            updateThemeUI(saved);
-        });
-
-        // Escutar mudanças no SO se estiver no modo Sistema
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-            if (localStorage.getItem('theme') === 'system' || !localStorage.getItem('theme')) {
-                document.documentElement.setAttribute('data-theme', e.matches ? 'dark' : 'light');
-            }
-        });
-
-        // UI na primeira carga (sem turbo ativado)
-        updateThemeUI(localStorage.getItem('theme') || 'system');
-    </script>
-    <script>
-        document.cookie = "client_tz=" + Intl.DateTimeFormat().resolvedOptions().timeZone + "; path=/; max-age=31536000";
+        })();
     </script>
 </body>
 </html> 

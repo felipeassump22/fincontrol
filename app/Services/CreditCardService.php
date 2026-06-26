@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\CreditCardInvoiceStatus;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Models\CreditCard;
@@ -69,7 +70,34 @@ class CreditCardService
             'period_end' => $periodEnd,
             'month' => $month,
             'year' => $year,
+            'status' => $this->getInvoiceStatus($card, $month, $year),
         ];
+    }
+
+    /**
+     * Req 13 — Status da fatura virtual: ABERTA, FECHADA ou PAGA.
+     */
+    public function getInvoiceStatus(CreditCard $card, int $month, int $year): CreditCardInvoiceStatus
+    {
+        [$periodStart, $periodEnd] = $this->getBillingPeriod($card, $year, $month);
+
+        $transactions = $card->transactions()
+            ->where('transaction_type', TransactionType::EXPENSE)
+            ->whereBetween('due_date', [$periodStart->toDateString(), $periodEnd->toDateString()])
+            ->where('status', '!=', TransactionStatus::CANCELED)
+            ->get();
+
+        $hasPending = $transactions->contains(fn (Transaction $t) => $t->status === TransactionStatus::PENDING);
+
+        if (! $hasPending) {
+            return CreditCardInvoiceStatus::PAID;
+        }
+
+        if (now()->startOfDay()->gt($periodEnd)) {
+            return CreditCardInvoiceStatus::CLOSED;
+        }
+
+        return CreditCardInvoiceStatus::OPEN;
     }
 
     /**
@@ -117,8 +145,10 @@ class CreditCardService
                     'description' => $description,
                     'amount' => $amount,
                     'due_date' => $dueDate->toDateString(),
+                    'competence_date' => $purchaseDate->toDateString(),
                     'transaction_type' => TransactionType::EXPENSE,
                     'status' => TransactionStatus::PENDING,
+                    'payment_method' => 'CARTAO',
                     'user_id' => $data['user_id'],
                     'bank_account_id' => $data['bank_account_id'],
                     'credit_card_id' => $card->id,
@@ -236,6 +266,7 @@ class CreditCardService
             $card->open_invoice_total = $summary['total'];
             $card->pending_count = $summary['count'];
             $card->invoice_summary = $summary;
+            $card->invoice_status = $summary['status'];
 
             return $card;
         });

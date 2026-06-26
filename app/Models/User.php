@@ -5,6 +5,7 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -29,6 +30,7 @@ class User extends Authenticatable
         'password_hash',
         'role_id',
         'is_active',
+        'currency',
         'last_login_at',
     ];
 
@@ -98,6 +100,11 @@ class User extends Authenticatable
         return $this->hasMany(MonthlyReport::class);
     }
 
+    public function companySetting(): HasOne
+    {
+        return $this->hasOne(CompanySetting::class);
+    }
+
     // ─── Helpers de Perfil ────────────────────────
 
     /**
@@ -117,11 +124,52 @@ class User extends Authenticatable
     }
 
     /**
+     * Verifica se o usuário é do perfil financeiro.
+     */
+    public function isFinancial(): bool
+    {
+        return $this->role->isFinancial();
+    }
+
+    /**
+     * Pode registrar e gerenciar dados financeiros (Admin ou Financeiro).
+     */
+    public function canManageFinances(): bool
+    {
+        return $this->isAdmin() || $this->isFinancial();
+    }
+
+    /**
      * Verifica se o usuário pode deletar transações.
      */
     public function canDeleteTransactions(): bool
     {
         return $this->role->can_delete_transactions;
+    }
+
+    /**
+     * ID do titular dos dados financeiros da empresa.
+     * Administrador é o dono; Financeiro e Visualizador compartilham os mesmos dados.
+     */
+    public function dataOwnerId(): int
+    {
+        if ($this->isAdmin()) {
+            return $this->id;
+        }
+
+        return static::query()
+            ->whereHas('role', fn ($q) => $q->where('name', 'Administrador'))
+            ->where('is_active', true)
+            ->orderBy('id')
+            ->value('id') ?? $this->id;
+    }
+
+    /**
+     * Verifica se o registro pertence ao escopo financeiro do usuário.
+     */
+    public function ownsFinancialData(object $record): bool
+    {
+        return isset($record->user_id) && (int) $record->user_id === $this->dataOwnerId();
     }
 
     /**

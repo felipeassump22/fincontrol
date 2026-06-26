@@ -19,7 +19,7 @@
                 @endfor
             </select>
         </form>
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->can('export', \App\Models\MonthlyReport::class))
             <a href="{{ route('reports.export-pdf', ['year' => $year, 'month' => $month]) }}" class="btn btn-primary" data-turbo="false" target="_blank">
                 <i class="ti ti-download"></i>{{ __('Exportar PDF') }}
             </a>
@@ -74,7 +74,7 @@
         </div>
     </div>
 
-    @if(!$report->is_closed && auth()->user()->isAdmin())
+    @if(!$report->is_closed && auth()->user()->can('close', $report))
         <div style="margin-top:16px;text-align:right">
             <form method="POST" action="{{ route('reports.close', ['year' => $year, 'month' => $month]) }}"
                   onsubmit="return confirm('Fechar este relatório? Ele se tornará imutável.')">

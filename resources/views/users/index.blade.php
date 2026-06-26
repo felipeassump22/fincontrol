@@ -26,7 +26,7 @@
                         </td>
                         <td style="font-size:12px">{{ $user->email }}</td>
                         <td>
-                            <span class="badge {{ $user->isAdmin() ? 'badge-danger' : 'badge-info' }}">
+                            <span class="badge {{ $user->isAdmin() ? 'badge-danger' : ($user->isFinancial() ? 'badge-warning' : 'badge-info') }}">
                                 {{ $user->role->name }}
                             </span>
                         </td>
@@ -55,20 +55,20 @@
             @csrf
             <div class="form-group">
                 <label class="form-label">{{ __('Nome completo') }}</label>
-                <input type="text" name="username" placeholder="{{ __('Ex: João Silva') }}" required>
+                <input type="text" name="username" placeholder="{{ __('Ex: João Silva') }}" autocomplete="name" required>
             </div>
             <div class="form-group">
                 <label class="form-label">{{ __('E-mail') }}</label>
-                <input type="email" name="email" placeholder="joao@empresa.com.br" required>
+                <input type="email" name="email" placeholder="joao@empresa.com.br" autocomplete="email" required>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">{{ __('Senha') }}</label>
-                    <input type="password" name="password" placeholder="••••••" required>
+                    <input type="password" name="password" placeholder="••••••" autocomplete="new-password" required>
                 </div>
                 <div class="form-group">
                     <label class="form-label">{{ __('Confirmar senha') }}</label>
-                    <input type="password" name="password_confirmation" placeholder="••••••" required>
+                    <input type="password" name="password_confirmation" placeholder="••••••" autocomplete="new-password" required>
                 </div>
             </div>
             <div class="form-group">

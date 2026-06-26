@@ -25,6 +25,7 @@ class BankAccount extends Model
         'initial_balance',
         'current_balance',
         'user_id',
+        'is_active',
         'pix_key',
         'document',
         'agency',
@@ -34,6 +35,7 @@ class BankAccount extends Model
     protected $casts = [
         'initial_balance' => 'decimal:2',
         'current_balance' => 'decimal:2',
+        'is_active' => 'boolean',
     ];
 
     // ─── Relacionamentos ──────────────────────────
@@ -51,6 +53,13 @@ class BankAccount extends Model
     public function recurringExpenses(): HasMany
     {
         return $this->hasMany(RecurringExpense::class);
+    }
+
+    // ─── Scopes ───────────────────────────────────
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
     }
 
     // ─── Helpers ──────────────────────────────────

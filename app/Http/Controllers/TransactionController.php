@@ -32,18 +32,25 @@ class TransactionController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $filters = $request->only(['status', 'transaction_type', 'bank_account_id', 'category_id', 'client_id', 'date_from', 'date_to', 'period']);
+        $ownerId = $user->dataOwnerId();
+        $filters = $request->only([
+            'status', 'transaction_type', 'bank_account_id', 'category_id',
+            'client_id', 'date_from', 'date_to', 'period', 'quick_period',
+        ]);
 
-        $transactions = $this->transactionService->list($user->id, $filters);
-        $bankAccounts = BankAccount::where('user_id', $user->id)->get();
+        $filters = $this->transactionService->resolvePeriodFilters($filters);
+
+        $transactions = $this->transactionService->list($ownerId, $filters);
+        $transactions->getCollection()->load(['reversals']);
+        $bankAccounts = BankAccount::where('user_id', $ownerId)->active()->orderBy('name')->get();
         $categories = Cache::remember('categories.all', 86400, function () {
             return Category::all();
         });
-        $clients = Client::where('user_id', $user->id)->get();
-        $creditCards = CreditCard::where('user_id', $user->id)->get();
+        $clients = Client::where('user_id', $ownerId)->get();
+        $creditCards = CreditCard::where('user_id', $ownerId)->get();
 
         // Dados para o Gráfico do Topo (Agrupado por data)
-        $chartQuery = Transaction::where('user_id', $user->id)
+        $chartQuery = Transaction::where('user_id', $ownerId)
             ->whereNull('credit_card_id');
         
         if (! empty($filters['period'])) {
@@ -78,12 +85,13 @@ class TransactionController extends Controller
     public function store(StoreTransactionRequest $request)
     {
         $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
+        $ownerId = $request->user()->dataOwnerId();
+        $data['user_id'] = $ownerId;
 
-        $this->assertBankAccountBelongsToUser($request->user()->id, (int) $data['bank_account_id']);
+        $this->assertBankAccountBelongsToUser($ownerId, (int) $data['bank_account_id']);
 
         if (! empty($data['credit_card_id']) && $data['transaction_type'] === 'EXPENSE') {
-            $this->assertCreditCardBelongsToUser($request->user()->id, (int) $data['credit_card_id']);
+            $this->assertCreditCardBelongsToUser($ownerId, (int) $data['credit_card_id']);
 
             $purchaseData = [
                 'user_id' => $data['user_id'],
@@ -124,6 +132,12 @@ class TransactionController extends Controller
             $data = $request->validated();
             $invoiceFile = $request->file('invoice_document');
 
+            $this->assertBankAccountBelongsToUser(
+                $request->user()->dataOwnerId(),
+                (int) $data['bank_account_id'],
+                ! $transaction->bank_account_id || (int) $data['bank_account_id'] !== $transaction->bank_account_id
+            );
+
             $this->transactionService->update($transaction, $data, $invoiceFile);
 
             return redirect()->route('transactions.index')
@@ -150,6 +164,48 @@ class TransactionController extends Controller
         }
     }
 
+    public function reconcile(Transaction $transaction)
+    {
+        $this->authorize('reconcile', $transaction);
+
+        try {
+            $this->transactionService->markAsReconciled($transaction);
+
+            return redirect()->route('transactions.index')
+                ->with('success', 'Lançamento conciliado!');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function cancel(Transaction $transaction)
+    {
+        $this->authorize('cancel', $transaction);
+
+        try {
+            $this->transactionService->cancel($transaction);
+
+            return redirect()->route('transactions.index')
+                ->with('success', 'Lançamento cancelado!');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function reverse(Transaction $transaction)
+    {
+        $this->authorize('reverse', $transaction);
+
+        try {
+            $this->transactionService->reverse($transaction);
+
+            return redirect()->route('transactions.index')
+                ->with('success', 'Lançamento estornado com sucesso!');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     /**
      * Remove um lançamento.
      */
@@ -169,11 +225,19 @@ class TransactionController extends Controller
      */
     public function checkImpact(Request $request)
     {
+        if (! $request->user()->canManageFinances()) {
+            abort(403, 'Você não tem permissão para esta ação.');
+        }
+
+        $ownerId = $request->user()->dataOwnerId();
+
         $request->validate([
             'bank_account_id' => 'required|exists:bank_accounts,id',
             'amount' => 'required|numeric|min:0.01',
             'transaction_type' => 'required|in:INCOME,EXPENSE',
         ]);
+
+        $this->assertBankAccountBelongsToUser($ownerId, (int) $request->bank_account_id);
 
         $impact = $this->transactionService->checkBalanceImpact(
             $request->bank_account_id,
@@ -184,10 +248,16 @@ class TransactionController extends Controller
         return response()->json($impact);
     }
 
-    private function assertBankAccountBelongsToUser(int $userId, int $bankAccountId): void
+    private function assertBankAccountBelongsToUser(int $userId, int $bankAccountId, bool $mustBeActive = true): void
     {
-        if (! BankAccount::where('id', $bankAccountId)->where('user_id', $userId)->exists()) {
-            abort(403, 'Conta bancária inválida para este usuário.');
+        $query = BankAccount::where('id', $bankAccountId)->where('user_id', $userId);
+
+        if ($mustBeActive) {
+            $query->active();
+        }
+
+        if (! $query->exists()) {
+            abort(403, 'Conta bancária inválida ou inativa para este usuário.');
         }
     }
 

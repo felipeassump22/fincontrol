@@ -43,10 +43,15 @@ Route::middleware(['auth'])->group(function () {
     // Lançamentos
     Route::resource('transactions', TransactionController::class)->except(['create', 'edit', 'show']);
     Route::post('/transactions/{transaction}/pay', [TransactionController::class, 'pay'])->name('transactions.pay');
+    Route::post('/transactions/{transaction}/reconcile', [TransactionController::class, 'reconcile'])->name('transactions.reconcile');
+    Route::post('/transactions/{transaction}/cancel', [TransactionController::class, 'cancel'])->name('transactions.cancel');
+    Route::post('/transactions/{transaction}/reverse', [TransactionController::class, 'reverse'])->name('transactions.reverse');
     Route::post('/transactions/check-impact', [TransactionController::class, 'checkImpact'])->name('transactions.check-impact');
 
     // Contas bancárias
-    Route::resource('bank-accounts', BankAccountController::class)->except(['create', 'edit', 'show']);
+    Route::post('/bank-accounts/{bank_account}/deactivate', [BankAccountController::class, 'deactivate'])->name('bank-accounts.deactivate');
+    Route::post('/bank-accounts/{bank_account}/activate', [BankAccountController::class, 'activate'])->name('bank-accounts.activate');
+    Route::resource('bank-accounts', BankAccountController::class)->except(['create', 'edit', 'show', 'destroy']);
 
     // Categorias
     Route::get('categories', [CategoryController::class, 'index'])->name('categories.index');
@@ -75,10 +80,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/export-pdf', [ReportController::class, 'exportPdf'])->name('reports.export-pdf');
     Route::post('/reports/close', [ReportController::class, 'close'])->name('reports.close');
     Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow'])->name('reports.cash-flow');
+    Route::get('/reports/client-payments', [ReportController::class, 'clientPayments'])->name('reports.client-payments');
+    Route::get('/reports/accounting', [ReportController::class, 'accounting'])->name('reports.accounting');
 
     // Configurações
     Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
     Route::post('/settings/currency', [SettingsController::class, 'updateCurrency'])->name('settings.currency');
+    Route::post('/settings/company', [SettingsController::class, 'updateCompany'])->name('settings.company');
 
     // Auditoria
     Route::get('/audit', [AuditLogController::class, 'index'])->name('audit.index');

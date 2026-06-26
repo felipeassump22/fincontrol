@@ -27,7 +27,7 @@ class CashFlowProjectionService
         $projection = [];
 
         // Saldo atual consolidado
-        $currentBalance = BankAccount::where('user_id', $userId)->sum('current_balance');
+        $currentBalance = BankAccount::where('user_id', $userId)->active()->sum('current_balance');
 
         // Investimentos CDB ativos
         $cdbInvestments = Investment::where('user_id', $userId)

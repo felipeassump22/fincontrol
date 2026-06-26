@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentMethod;
 use App\Enums\TransactionStatus;
 use App\Enums\TransactionType;
 use App\Traits\Auditable;
@@ -21,9 +22,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $description
  * @property float $amount
  * @property Carbon $due_date
+ * @property Carbon|null $competence_date
  * @property Carbon|null $payment_date
  * @property TransactionType $transaction_type
  * @property TransactionStatus $status
+ * @property PaymentMethod|null $payment_method
  * @property bool $is_recurring
  * @property int $user_id
  * @property int $bank_account_id
@@ -40,9 +43,11 @@ class Transaction extends Model
         'description',
         'amount',
         'due_date',
+        'competence_date',
         'payment_date',
         'transaction_type',
         'status',
+        'payment_method',
         'is_recurring',
         'user_id',
         'bank_account_id',
@@ -50,14 +55,17 @@ class Transaction extends Model
         'client_id',
         'category_id',
         'invoice_document_url',
+        'reversal_of_id',
     ];
 
     protected $casts = [
         'amount' => 'decimal:2',
         'due_date' => 'date',
+        'competence_date' => 'date',
         'payment_date' => 'date',
         'transaction_type' => TransactionType::class,
         'status' => TransactionStatus::class,
+        'payment_method' => PaymentMethod::class,
         'is_recurring' => 'boolean',
     ];
 
@@ -86,6 +94,25 @@ class Transaction extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function reversalOf(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class, 'reversal_of_id');
+    }
+
+    public function reversals(): HasMany
+    {
+        return $this->hasMany(Transaction::class, 'reversal_of_id');
+    }
+
+    public function wasReversed(): bool
+    {
+        if ($this->relationLoaded('reversals')) {
+            return $this->reversals->isNotEmpty();
+        }
+
+        return $this->reversals()->exists();
     }
 
     public function installments(): HasMany
@@ -143,6 +170,32 @@ class Transaction extends Model
     public function isPaid(): bool
     {
         return $this->status === TransactionStatus::PAID;
+    }
+
+    public function isReconciled(): bool
+    {
+        return $this->status === TransactionStatus::RECONCILED;
+    }
+
+    public function isCanceled(): bool
+    {
+        return $this->status === TransactionStatus::CANCELED;
+    }
+
+    /**
+     * Bloqueia edição (pago, conciliado ou cancelado).
+     */
+    public function isLockedForEdit(): bool
+    {
+        return $this->status->isLockedForEdit();
+    }
+
+    /**
+     * Bloqueia edição pelo perfil Financeiro (pago ou conciliado).
+     */
+    public function isLockedForFinancial(): bool
+    {
+        return $this->status->isLockedForFinancial();
     }
 
     /**

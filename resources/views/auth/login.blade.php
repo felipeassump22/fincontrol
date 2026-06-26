@@ -148,14 +148,14 @@
                     <div class="form-group">
                         <label class="form-label" for="email">{{ __('E-mail') }}</label>
                         <input type="email" id="email" name="email" placeholder="seu@email.com.br"
-                               value="{{ old('email') }}" required autofocus>
+                               value="{{ old('email') }}" autocomplete="email" required autofocus>
                         @error('email')
                             <div class="form-error">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="form-group">
                         <label class="form-label" for="password">{{ __('Senha') }}</label>
-                        <input type="password" id="password" name="password" placeholder="••••••••" required>
+                        <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
                         @error('password')
                             <div class="form-error">{{ $message }}</div>
                         @enderror

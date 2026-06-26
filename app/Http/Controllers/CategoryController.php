@@ -14,16 +14,17 @@ class CategoryController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $ownerId = $user->dataOwnerId();
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
 
-        $categories = Category::withCount(['transactions' => function ($q) use ($user, $year, $month) {
-            $q->where('user_id', $user->id)
+        $categories = Category::withCount(['transactions' => function ($q) use ($ownerId, $year, $month) {
+            $q->where('user_id', $ownerId)
                 ->whereYear('due_date', $year)
                 ->whereMonth('due_date', $month);
         }])
-            ->withSum(['transactions as monthly_total' => function ($q) use ($user, $year, $month) {
-                $q->where('user_id', $user->id)
+            ->withSum(['transactions as monthly_total' => function ($q) use ($ownerId, $year, $month) {
+                $q->where('user_id', $ownerId)
                     ->whereYear('due_date', $year)
                     ->whereMonth('due_date', $month);
             }], 'amount')
@@ -36,8 +37,11 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
-            'type' => 'required|in:INCOME,EXPENSE',
+            'type' => 'required|in:INCOME,EXPENSE,BOTH',
+            'requires_client' => 'boolean',
         ]);
+
+        $data['requires_client'] = $request->boolean('requires_client');
 
         Category::create($data);
 
@@ -52,10 +56,16 @@ class CategoryController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
-            'type' => 'required|in:INCOME,EXPENSE',
+            'type' => 'required|in:INCOME,EXPENSE,BOTH',
+            'requires_client' => 'boolean',
         ]);
 
+        $data['requires_client'] = $request->boolean('requires_client');
+
         $category->update($data);
+
+        Cache::forget('categories.all');
+        Cache::forget('categories.expense');
 
         return redirect()->route('categories.index')
             ->with('success', 'Categoria atualizada com sucesso!');

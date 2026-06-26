@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\TransactionStatus;
 use App\Models\MonthlyReport;
 use App\Models\Transaction;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -57,9 +58,9 @@ class MonthlyReportService
             ->orderBy('due_date')
             ->get();
 
-        $paidCount = $transactions->where('status', 'PAID')->count();
-        $pendingCount = $transactions->where('status', '!=', 'PAID')->count();
-        $pendingTransactions = $transactions->where('status', '!=', 'PAID')->values()->toArray();
+        $paidCount = $transactions->where('status', TransactionStatus::PAID)->count();
+        $pendingCount = $transactions->where('status', '!=', TransactionStatus::PAID)->count();
+        $pendingTransactions = $transactions->where('status', '!=', TransactionStatus::PAID)->values()->toArray();
         $margin = $totalIncome > 0 ? round(($totalIncome - $totalExpense) / $totalIncome * 100, 1) : 0;
 
         $reportData = [
@@ -110,9 +111,12 @@ class MonthlyReportService
      */
     public function generatePdf(MonthlyReport $report): string
     {
+        $report->load(['user.companySetting']);
+
         $pdf = Pdf::loadView('reports.pdf.monthly', [
             'report' => $report,
             'data' => $report->report_data,
+            'company' => $report->user->companySetting,
         ]);
 
         $filename = "reports/relatorio_{$report->year}_{$report->month}_{$report->user_id}.pdf";

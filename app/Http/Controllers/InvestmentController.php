@@ -13,7 +13,8 @@ class InvestmentController extends Controller
 {
     public function index(Request $request)
     {
-        $investments = Investment::where('user_id', $request->user()->id)
+        $ownerId = $request->user()->dataOwnerId();
+        $investments = Investment::where('user_id', $ownerId)
             ->orderBy('start_date', 'desc')
             ->get();
 
@@ -24,6 +25,10 @@ class InvestmentController extends Controller
 
     public function store(Request $request)
     {
+        if (! $request->user()->canManageFinances()) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'name' => 'required|string|max:150',
             'type' => 'required|in:CDB,LCI,LCA,TESOURO_DIRETO,ACAO,FUNDO_IMOBILIARIO,OUTRO',
@@ -33,7 +38,7 @@ class InvestmentController extends Controller
             'interest_rate' => 'required|numeric|min:0',
         ]);
 
-        $data['user_id'] = $request->user()->id;
+        $data['user_id'] = $request->user()->dataOwnerId();
         $data['current_amount'] = $data['initial_amount'];
 
         Investment::create($data);
@@ -44,7 +49,7 @@ class InvestmentController extends Controller
 
     public function update(Request $request, Investment $investment)
     {
-        if ($investment->user_id !== $request->user()->id) {
+        if (! $request->user()->canManageFinances() || ! $request->user()->ownsFinancialData($investment)) {
             abort(403, 'Acesso negado.');
         }
 

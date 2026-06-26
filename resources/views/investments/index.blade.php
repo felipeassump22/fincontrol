@@ -4,7 +4,7 @@
 @section('content')
 <div class="topbar">
     <span class="topbar-title">{{ __('Investimentos') }}</span>
-    @if(auth()->user()->isAdmin())
+        @if(auth()->user()->canManageFinances())
         <button class="btn btn-primary" onclick="openModal('modal-invest')"><i class="ti ti-plus"></i>{{ __('Novo investimento') }}</button>
     @endif
 </div>

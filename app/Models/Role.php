@@ -52,4 +52,12 @@ class Role extends Model
     {
         return $this->name === 'Visualizador';
     }
+
+    /**
+     * Verifica se é o perfil financeiro.
+     */
+    public function isFinancial(): bool
+    {
+        return $this->name === 'Financeiro';
+    }
 }

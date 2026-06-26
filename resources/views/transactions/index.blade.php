@@ -5,7 +5,7 @@
 <div class="topbar">
     <span class="topbar-title">{{ __('Lançamentos') }}</span>
     <div class="topbar-actions">
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->canManageFinances())
             <button class="btn btn-primary" onclick="openModal('modal-novo'); toggleCreditCardFields();">
                 <i class="ti ti-plus"></i>{{ __('Novo lançamento') }}
             </button>
@@ -20,6 +20,12 @@
             <a href="{{ route('transactions.index') }}" class="chip {{ empty($filters['status']) ? 'active-chip' : '' }}">{{ __('Todos') }}</a>
             <a href="{{ route('transactions.index', array_merge($filters, ['status' => 'PAID'])) }}" class="chip {{ ($filters['status'] ?? '') === 'PAID' ? 'active-chip' : '' }}">{{ __('Pagos') }}</a>
             <a href="{{ route('transactions.index', array_merge($filters, ['status' => 'PENDING'])) }}" class="chip {{ ($filters['status'] ?? '') === 'PENDING' ? 'active-chip' : '' }}">{{ __('Em aberto') }}</a>
+            <a href="{{ route('transactions.index', array_merge($filters, ['status' => 'RECONCILED'])) }}" class="chip {{ ($filters['status'] ?? '') === 'RECONCILED' ? 'active-chip' : '' }}">{{ __('Conciliados') }}</a>
+            <a href="{{ route('transactions.index', array_merge($filters, ['status' => 'CANCELED'])) }}" class="chip {{ ($filters['status'] ?? '') === 'CANCELED' ? 'active-chip' : '' }}">{{ __('Cancelados') }}</a>
+            <a href="{{ route('transactions.index', array_merge($filters, ['quick_period' => 'today'])) }}" class="chip {{ ($filters['quick_period'] ?? '') === 'today' ? 'active-chip' : '' }}">{{ __('Hoje') }}</a>
+            <a href="{{ route('transactions.index', array_merge($filters, ['quick_period' => 'this_week'])) }}" class="chip {{ ($filters['quick_period'] ?? '') === 'this_week' ? 'active-chip' : '' }}">{{ __('Esta semana') }}</a>
+            <a href="{{ route('transactions.index', array_merge($filters, ['quick_period' => 'this_month'])) }}" class="chip {{ ($filters['quick_period'] ?? '') === 'this_month' ? 'active-chip' : '' }}">{{ __('Este mês') }}</a>
+            <a href="{{ route('transactions.index', array_merge($filters, ['quick_period' => 'last_month'])) }}" class="chip {{ ($filters['quick_period'] ?? '') === 'last_month' ? 'active-chip' : '' }}">{{ __('Mês anterior') }}</a>
             <div style="flex:1"></div>
             <select name="bank_account_id" style="width:auto;font-size:12px;padding:5px 8px" onchange="this.form.submit()">
                 <option value="">{{ __('Todas as contas') }}</option>
@@ -54,7 +60,7 @@
     {{-- Gráfico do topo --}}
     <div class="card" style="margin-bottom: 24px; padding: 16px; border-radius: 16px;">
         <div style="height: 200px; width: 100%;">
-            <canvas id="topChart"></canvas>
+            <canvas id="topChart" data-chart='@json($chartData)'></canvas>
         </div>
     </div>
 
@@ -97,17 +103,42 @@
                         <td data-label="{{ __('Status') }}"><span class="badge {{ $tx->status->badgeClass() }}">{{ $tx->status->label() }}</span></td>
                         <td data-label="{{ __('Ações') }}" class="action-cell-td">
                             <div class="action-cell">
-                                @if($tx->isPending() && auth()->user()->isAdmin())
+                                @if($tx->isPending() && auth()->user()->canManageFinances())
                                     <form method="POST" action="{{ route('transactions.pay', $tx) }}" style="display:inline">
                                         @csrf
                                         <button type="submit" class="btn btn-sm"><i class="ti ti-check"></i>{{ __('Pagar') }}</button>
                                     </form>
+                                    <form method="POST" action="{{ route('transactions.cancel', $tx) }}" style="display:inline" onsubmit="return confirm('{{ __('Cancelar este lançamento?') }}')">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm" style="color:var(--color-text-danger)"><i class="ti ti-x"></i></button>
+                                    </form>
                                     <i class="ti ti-edit action-icon" onclick="openModal('modal-edit-{{ $tx->id }}')" title="{{ __('Editar') }}"></i>
                                 @endif
-                                @if($tx->isPaid())
+                                @if(($tx->isPaid() || $tx->isReconciled()) && auth()->user()->can('update', $tx))
+                                    <i class="ti ti-edit action-icon" onclick="openModal('modal-edit-{{ $tx->id }}')" title="{{ __('Editar') }}"></i>
+                                @endif
+                                @if(auth()->user()->can('reverse', $tx))
+                                    <form method="POST" action="{{ route('transactions.reverse', $tx) }}" style="display:inline" onsubmit="return confirm('{{ __('Estornar este lançamento? Será criada uma transação inversa.') }}')">
+                                        @csrf
+                                        <button type="submit" style="background:none;border:none;cursor:pointer;padding:0">
+                                            <i class="ti ti-arrow-back-up action-icon" style="color:var(--color-text-warning)" title="{{ __('Estornar') }}"></i>
+                                        </button>
+                                    </form>
+                                @endif
+                                @if($tx->wasReversed())
+                                    <span class="badge badge-info" style="font-size:10px">{{ __('Estornado') }}</span>
+                                @endif
+                                @if($tx->isPaid() && auth()->user()->canManageFinances())
+                                    <form method="POST" action="{{ route('transactions.reconcile', $tx) }}" style="display:inline">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm"><i class="ti ti-link"></i>{{ __('Conciliar') }}</button>
+                                    </form>
                                     <i class="ti ti-eye action-icon" onclick="openModal('modal-detail-{{ $tx->id }}')" title="{{ __('Ver detalhes') }}"></i>
                                 @endif
-                                @if(auth()->user()->canDeleteTransactions())
+                                @if(($tx->isReconciled() || $tx->isCanceled()) && auth()->user()->canManageFinances())
+                                    <i class="ti ti-eye action-icon" onclick="openModal('modal-detail-{{ $tx->id }}')" title="{{ __('Ver detalhes') }}"></i>
+                                @endif
+                                @if(auth()->user()->can('delete', $tx))
                                     <form method="POST" action="{{ route('transactions.destroy', $tx) }}" style="display:inline"
                                           onsubmit="return confirm('{{ __('Excluir este lançamento?') }}')">
                                         @csrf @method('DELETE')
@@ -144,7 +175,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">{{ __('Tipo') }}</label>
-                    <select name="transaction_type" id="new-type" required onchange="toggleCreditCardFields()">
+                    <select name="transaction_type" id="new-type" required onchange="toggleCreditCardFields(); filterCategoriesByType('new-type', 'new-category');">
                         <option value="INCOME">{{ __('Entrada') }}</option>
                         <option value="EXPENSE">{{ __('Saída') }}</option>
                     </select>
@@ -156,6 +187,10 @@
                 <div class="form-group" id="field-purchase-date" style="display:none">
                     <label class="form-label">{{ __('Data da compra') }}</label>
                     <input type="date" name="purchase_date" id="new-purchase-date" value="{{ now()->format('Y-m-d') }}">
+                </div>
+                <div class="form-group" id="field-competence-date">
+                    <label class="form-label">{{ __('Data de competência') }}</label>
+                    <input type="date" name="competence_date" id="new-competence-date" value="{{ now()->format('Y-m-d') }}">
                 </div>
             </div>
             <div class="form-group">
@@ -174,6 +209,19 @@
                         @foreach($bankAccounts as $account)
                             <option value="{{ $account->id }}">{{ $account->name }}</option>
                         @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="form-row" id="field-payment-method">
+                <div class="form-group">
+                    <label class="form-label">{{ __('Método de pagamento') }}</label>
+                    <select name="payment_method" id="new-payment-method">
+                        <option value="PIX">PIX</option>
+                        <option value="BOLETO">{{ __('Boleto') }}</option>
+                        <option value="CARTAO">{{ __('Cartão') }}</option>
+                        <option value="TRANSFERENCIA">{{ __('Transferência') }}</option>
+                        <option value="DINHEIRO">{{ __('Dinheiro') }}</option>
+                        <option value="OUTRO">{{ __('Outro') }}</option>
                     </select>
                 </div>
             </div>
@@ -200,10 +248,10 @@
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">{{ __('Categoria') }}</label>
-                    <select name="category_id">
+                    <select name="category_id" id="new-category">
                         <option value="">{{ __('— Selecione —') }}</option>
                         @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                            <option value="{{ $cat->id }}" data-type="{{ $cat->type }}" data-requires-client="{{ $cat->requires_client ? '1' : '0' }}">{{ $cat->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -229,8 +277,8 @@
     </div>
 </div>
 
-{{-- Modais de detalhe para lançamentos pagos --}}
-@foreach($transactions->where('status.value', 'PAID') as $tx)
+{{-- Modais de detalhe para lançamentos bloqueados --}}
+@foreach($transactions->filter(fn ($tx) => ! $tx->isPending()) as $tx)
 <div class="modal-overlay" id="modal-detail-{{ $tx->id }}">
     <div class="modal">
         <div class="modal-header">
@@ -240,17 +288,23 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px">
             <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Descrição') }}</span><p style="font-weight:500;margin-top:2px">{{ $tx->description }}</p></div>
             <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Data vencimento') }}</span><p style="font-weight:500;margin-top:2px">{{ $tx->due_date->format('d/m/Y') }}</p></div>
+            @if($tx->competence_date)
+            <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Competência') }}</span><p style="font-weight:500;margin-top:2px">{{ $tx->competence_date->format('d/m/Y') }}</p></div>
+            @endif
             <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Valor') }}</span><p style="font-weight:500;margin-top:2px;color:{{ $tx->isIncome() ? 'var(--color-text-success)' : 'var(--color-text-danger)' }}">{{ money($tx->amount) }}</p></div>
             <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Conta') }}</span><p style="font-weight:500;margin-top:2px">{{ $tx->bankAccount->name }}</p></div>
             <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Categoria') }}</span><p style="font-weight:500;margin-top:2px">{{ $tx->category->name ?? '—' }}</p></div>
-            <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Status') }}</span><p style="margin-top:4px"><span class="badge badge-success">{{ __('Pago') }}</span></p></div>
+            <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Status') }}</span><p style="margin-top:4px"><span class="badge {{ $tx->status->badgeClass() }}">{{ $tx->status->label() }}</span></p></div>
+            @if($tx->payment_method)
+            <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Método') }}</span><p style="font-weight:500;margin-top:2px">{{ $tx->payment_method->label() }}</p></div>
+            @endif
             @if($tx->payment_date)
             <div><span style="color:var(--color-text-secondary);font-size:12px">{{ __('Data pagamento') }}</span><p style="font-weight:500;margin-top:2px">{{ $tx->payment_date->format('d/m/Y') }}</p></div>
             @endif
         </div>
         <div style="margin-top:14px;padding:10px 12px;background:var(--color-background-secondary);border-radius:var(--border-radius-md);font-size:12px;color:var(--color-text-secondary);display:flex;align-items:center;gap:6px">
             <i class="ti ti-lock" style="font-size:14px"></i>
-            {{ __('Lançamento pago — edição bloqueada') }}
+            {{ __('Lançamento bloqueado para edição') }}
         </div>
         <div style="display:flex;justify-content:flex-end;margin-top:16px">
             <button class="btn" onclick="closeModal('modal-detail-{{ $tx->id }}')">{{ __('Fechar') }}</button>
@@ -260,7 +314,7 @@
 @endforeach
 
 {{-- Modais de edição para lançamentos pendentes --}}
-@foreach($transactions->where('status.value', 'PENDING') as $tx)
+@foreach($transactions->filter(fn ($tx) => auth()->user()->can('update', $tx)) as $tx)
 <div class="modal-overlay" id="modal-edit-{{ $tx->id }}">
     <div class="modal">
         <div class="modal-header">
@@ -272,7 +326,7 @@
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label">{{ __('Tipo') }}</label>
-                    <select name="transaction_type" required>
+                    <select name="transaction_type" id="edit-type-{{ $tx->id }}" required onchange="filterCategoriesByType('edit-type-{{ $tx->id }}', 'edit-category-{{ $tx->id }}')">
                         <option value="INCOME" {{ $tx->transaction_type->value === 'INCOME' ? 'selected' : '' }}>{{ __('Entrada') }}</option>
                         <option value="EXPENSE" {{ $tx->transaction_type->value === 'EXPENSE' ? 'selected' : '' }}>{{ __('Saída') }}</option>
                     </select>
@@ -280,6 +334,10 @@
                 <div class="form-group">
                     <label class="form-label">{{ __('Data de vencimento') }}</label>
                     <input type="date" name="due_date" value="{{ $tx->due_date->format('Y-m-d') }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">{{ __('Data de competência') }}</label>
+                    <input type="date" name="competence_date" value="{{ $tx->competence_date?->format('Y-m-d') ?? $tx->due_date->format('Y-m-d') }}">
                 </div>
             </div>
             <div class="form-group">
@@ -297,28 +355,39 @@
                         @foreach($bankAccounts as $account)
                             <option value="{{ $account->id }}" {{ $tx->bank_account_id == $account->id ? 'selected' : '' }}>{{ $account->name }}</option>
                         @endforeach
+                        @if($tx->bankAccount && ! $bankAccounts->contains('id', $tx->bank_account_id))
+                            <option value="{{ $tx->bank_account_id }}" selected>{{ $tx->bankAccount->name }} ({{ __('Inativa') }})</option>
+                        @endif
                     </select>
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">{{ __('Categoria') }}</label>
-                    <select name="category_id">
-                        <option value="">{{ __('— Selecione —') }}</option>
-                        @foreach($categories as $cat)
-                            <option value="{{ $cat->id }}" {{ $tx->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                    <label class="form-label">{{ __('Método de pagamento') }}</label>
+                    <select name="payment_method">
+                        @foreach(\App\Enums\PaymentMethod::cases() as $method)
+                            <option value="{{ $method->value }}" {{ $tx->payment_method?->value === $method->value ? 'selected' : '' }}>{{ $method->label() }}</option>
                         @endforeach
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">{{ __('Cliente (opcional)') }}</label>
-                    <select name="client_id">
-                        <option value="">{{ __('— Nenhum —') }}</option>
-                        @foreach($clients as $client)
-                            <option value="{{ $client->id }}" {{ $tx->client_id == $client->id ? 'selected' : '' }}>{{ $client->name }}</option>
+                    <label class="form-label">{{ __('Categoria') }}</label>
+                    <select name="category_id" id="edit-category-{{ $tx->id }}">
+                        <option value="">{{ __('— Selecione —') }}</option>
+                        @foreach($categories as $cat)
+                            <option value="{{ $cat->id }}" data-type="{{ $cat->type }}" {{ $tx->category_id == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                         @endforeach
                     </select>
                 </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">{{ __('Cliente (opcional)') }}</label>
+                <select name="client_id">
+                    <option value="">{{ __('— Nenhum —') }}</option>
+                    @foreach($clients as $client)
+                        <option value="{{ $client->id }}" {{ $tx->client_id == $client->id ? 'selected' : '' }}>{{ $client->name }}</option>
+                    @endforeach
+                </select>
             </div>
             <div class="form-group">
                 <label class="form-label">{{ __('Nota fiscal') }} <span style="color:var(--color-text-tertiary);font-size:11px">{{ __('(opcional — PDF, JPG, PNG até 5MB)') }}</span></label>
@@ -338,51 +407,77 @@
 
 @push('scripts')
 <script>
-    /**
-     * RF04 — Verificação de impacto no saldo via AJAX.
-     */
-    window.toggleCreditCardFields = function() {
-        const typeEl = document.getElementById('new-type');
-        const cardEl = document.getElementById('new-credit-card');
+    window.toggleCreditCardFields = function () {
+        var typeEl = document.getElementById('new-type');
+        var cardEl = document.getElementById('new-credit-card');
         if (!typeEl || !cardEl) return;
 
-        const type = typeEl.value;
-        const cardId = cardEl.value;
-        const isExpense = type === 'EXPENSE';
-        const hasCard = isExpense && cardId !== '';
+        var type = typeEl.value;
+        var cardId = cardEl.value;
+        var isExpense = type === 'EXPENSE';
+        var hasCard = isExpense && cardId !== '';
 
-        const cardFields = document.getElementById('credit-card-fields');
-        const installmentsField = document.getElementById('field-installments');
-        const dueDateField = document.getElementById('field-due-date');
-        const purchaseDateField = document.getElementById('field-purchase-date');
-        const dueDateInput = document.getElementById('new-due-date');
-        const purchaseDateInput = document.getElementById('new-purchase-date');
-        const installmentsInput = document.getElementById('new-installments');
+        var cardFields = document.getElementById('credit-card-fields');
+        var installmentsField = document.getElementById('field-installments');
+        var dueDateField = document.getElementById('field-due-date');
+        var purchaseDateField = document.getElementById('field-purchase-date');
+        var dueDateInput = document.getElementById('new-due-date');
+        var purchaseDateInput = document.getElementById('new-purchase-date');
+        var installmentsInput = document.getElementById('new-installments');
 
-        cardFields.style.display = isExpense ? 'grid' : 'none';
-        installmentsField.style.display = hasCard ? 'block' : 'none';
-        dueDateField.style.display = hasCard ? 'none' : 'block';
-        purchaseDateField.style.display = hasCard ? 'block' : 'none';
+        if (cardFields) cardFields.style.display = isExpense ? 'grid' : 'none';
+        if (installmentsField) installmentsField.style.display = hasCard ? 'block' : 'none';
+        if (dueDateField) dueDateField.style.display = hasCard ? 'none' : 'block';
+        if (purchaseDateField) purchaseDateField.style.display = hasCard ? 'block' : 'none';
 
-        dueDateInput.required = isExpense && !hasCard;
-        purchaseDateInput.required = hasCard;
-        installmentsInput.required = hasCard;
+        var paymentMethodField = document.getElementById('field-payment-method');
+        var paymentMethodInput = document.getElementById('new-payment-method');
+        if (paymentMethodField && paymentMethodInput) {
+            paymentMethodField.style.display = isExpense && !hasCard ? 'grid' : 'none';
+            paymentMethodInput.required = isExpense && !hasCard;
+        }
 
+        if (dueDateInput) dueDateInput.required = isExpense && !hasCard;
+        if (purchaseDateInput) purchaseDateInput.required = hasCard;
+        if (installmentsInput) installmentsInput.required = hasCard;
+
+        var balanceAlert = document.getElementById('balance-alert');
         if (!hasCard) {
-            document.getElementById('balance-alert').style.display = 'none';
+            if (balanceAlert) balanceAlert.style.display = 'none';
         } else {
             window.checkImpact();
         }
     };
 
-    window.checkImpact = function() {
-        const amount = parseFloat(document.getElementById('new-amount').value);
-        const type = document.getElementById('new-type').value;
-        const accountId = document.getElementById('new-account').value;
-        const cardId = document.getElementById('new-credit-card').value;
+    window.filterCategoriesByType = function (typeSelectId, categorySelectId) {
+        var typeEl = document.getElementById(typeSelectId);
+        var categoryEl = document.getElementById(categorySelectId);
+        if (!typeEl || !categoryEl) return;
+
+        var type = typeEl.value;
+        Array.from(categoryEl.options).forEach(function (option) {
+            if (!option.value) {
+                option.hidden = false;
+                return;
+            }
+            option.hidden = !(option.dataset.type === type || option.dataset.type === 'BOTH');
+        });
+
+        var selected = categoryEl.options[categoryEl.selectedIndex];
+        if (selected && selected.hidden) {
+            categoryEl.value = '';
+        }
+    };
+
+    window.checkImpact = function () {
+        var amount = parseFloat(document.getElementById('new-amount').value);
+        var type = document.getElementById('new-type').value;
+        var accountId = document.getElementById('new-account').value;
+        var cardId = document.getElementById('new-credit-card').value;
 
         if (!amount || amount <= 0 || type !== 'EXPENSE' || cardId) {
-            document.getElementById('balance-alert').style.display = 'none';
+            var alertEl = document.getElementById('balance-alert');
+            if (alertEl) alertEl.style.display = 'none';
             return;
         }
 
@@ -392,56 +487,63 @@
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
             },
-            body: JSON.stringify({ bank_account_id: accountId, amount, transaction_type: type }),
+            body: JSON.stringify({ bank_account_id: accountId, amount: amount, transaction_type: type }),
         })
-        .then(r => r.json())
-        .then(data => {
-            const alert = document.getElementById('balance-alert');
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            var alertBox = document.getElementById('balance-alert');
+            if (!alertBox) return;
             if (data.will_be_negative) {
                 document.getElementById('balance-alert-msg').textContent =
-                    `{{ __('Atenção: A conta') }} "${data.account_name}" {{ __('ficará negativa! Saldo projetado:') }} {{ currency_symbol() }} ${data.projected_balance.toFixed(2).replace('.', ',')}`;
-                alert.style.display = 'flex';
+                    '{{ __('Atenção: A conta') }} "' + data.account_name + '" {{ __('ficará negativa! Saldo projetado:') }} {{ currency_symbol() }} ' + data.projected_balance.toFixed(2).replace('.', ',');
+                alertBox.style.display = 'flex';
             } else {
-                alert.style.display = 'none';
+                alertBox.style.display = 'none';
             }
         });
     };
 
-    // Execute exactly once when the script is loaded
-    window.toggleCreditCardFields();
+    window.initTransactionsPage = function () {
+        if (document.getElementById('new-type')) {
+            window.toggleCreditCardFields();
+            window.filterCategoriesByType('new-type', 'new-category');
+        }
 
-    (function() {
-        const ctx = document.getElementById('topChart');
+        document.querySelectorAll('[id^="edit-type-"]').forEach(function (typeEl) {
+            var txId = typeEl.id.replace('edit-type-', '');
+            window.filterCategoriesByType(typeEl.id, 'edit-category-' + txId);
+        });
+
+        var ctx = document.getElementById('topChart');
         if (!ctx) return;
 
-        const chartData = @json($chartData);
-        if (!chartData || chartData.length === 0) return;
+        var chartData = [];
+        try {
+            chartData = JSON.parse(ctx.dataset.chart || '[]');
+        } catch (e) {
+            chartData = [];
+        }
+        if (!chartData.length) return;
 
-        const dates = [...new Set(chartData.map(d => d.date))].sort();
-        
-        const incomeData = dates.map(date => {
-            const item = chartData.find(d => d.date === date && d.transaction_type === 'INCOME');
+        var dates = [...new Set(chartData.map(function (d) { return d.date; }))].sort();
+        var incomeData = dates.map(function (date) {
+            var item = chartData.find(function (d) { return d.date === date && d.transaction_type === 'INCOME'; });
             return item ? parseFloat(item.total) : 0;
         });
-
-        const expenseData = dates.map(date => {
-            const item = chartData.find(d => d.date === date && d.transaction_type === 'EXPENSE');
+        var expenseData = dates.map(function (date) {
+            var item = chartData.find(function (d) { return d.date === date && d.transaction_type === 'EXPENSE'; });
             return item ? parseFloat(item.total) : 0;
         });
-
-        // Formata data de YYYY-MM-DD para DD/MM
-        const labels = dates.map(date => {
-            const parts = date.split('-');
-            return `${parts[2]}/${parts[1]}`;
+        var labels = dates.map(function (date) {
+            var parts = date.split('-');
+            return parts[2] + '/' + parts[1];
         });
 
-        const ctxCanvas = ctx.getContext('2d');
-        
-        let incomeGradient = ctxCanvas.createLinearGradient(0, 0, 0, 300);
+        var ctxCanvas = ctx.getContext('2d');
+        var incomeGradient = ctxCanvas.createLinearGradient(0, 0, 0, 300);
         incomeGradient.addColorStop(0, 'rgba(34, 197, 94, 0.15)');
         incomeGradient.addColorStop(1, 'rgba(34, 197, 94, 0.0)');
-
-        let expenseGradient = ctxCanvas.createLinearGradient(0, 0, 0, 300);
+        var expenseGradient = ctxCanvas.createLinearGradient(0, 0, 0, 300);
         expenseGradient.addColorStop(0, 'rgba(239, 68, 68, 0.15)');
         expenseGradient.addColorStop(1, 'rgba(239, 68, 68, 0.0)');
 
@@ -463,11 +565,6 @@
                         borderColor: '#4ade80',
                         backgroundColor: incomeGradient,
                         borderWidth: 3,
-                        pointBackgroundColor: '#1e293b',
-                        pointBorderColor: '#4ade80',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
                         tension: 0.4,
                         fill: true
                     },
@@ -477,11 +574,6 @@
                         borderColor: '#f87171',
                         backgroundColor: expenseGradient,
                         borderWidth: 3,
-                        pointBackgroundColor: '#1e293b',
-                        pointBorderColor: '#f87171',
-                        pointBorderWidth: 2,
-                        pointRadius: 4,
-                        pointHoverRadius: 6,
                         tension: 0.4,
                         fill: true
                     }
@@ -490,64 +582,29 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: { 
-                            usePointStyle: true,
-                            padding: 20,
-                            font: { size: 12, weight: '500' }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        titleColor: '#f8fafc',
-                        bodyColor: '#cbd5e1',
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        padding: 12,
-                        cornerRadius: 8,
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                if (label) {
-                                    label += ': ';
-                                }
-                                if (context.parsed.y !== null) {
-                                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
-                                }
-                                return label;
-                            }
-                        }
-                    }
-                },
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'top' } },
                 scales: {
                     y: {
                         beginAtZero: true,
-                        grid: { 
-                            color: 'rgba(255, 255, 255, 0.05)',
-                            drawBorder: false,
-                            borderDash: [5, 5]
-                        },
-                        ticks: { 
-                            font: { size: 11 },
-                            callback: function(value) {
-                                return new Intl.NumberFormat('pt-BR', { notation: 'compact', style: 'currency', currency: 'BRL' }).format(value);
+                        ticks: {
+                            callback: function (value) {
+                                return window.formatChartCurrency(value, true);
                             }
                         }
                     },
-                    x: {
-                        grid: { display: false, drawBorder: false },
-                        ticks: { font: { size: 11 } }
-                    }
+                    x: { grid: { display: false } }
                 }
             }
         });
-    })();
+    };
+
+    window.initTransactionsPage();
+
+    if (!window.__transactionsTurboBound) {
+        window.__transactionsTurboBound = true;
+        document.addEventListener('turbo:load', window.initTransactionsPage);
+    }
 </script>
 @endpush
 @endsection

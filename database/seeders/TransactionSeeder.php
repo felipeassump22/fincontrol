@@ -156,5 +156,55 @@ class TransactionSeeder extends Seeder
             'bank_account_id' => $nubank->id,
             'category_id' => $despFix->id,
         ]);
+
+        // Lançamentos do mês atual para demo no dashboard
+        $currentMonth = now()->format('Y-m');
+        Transaction::create([
+            'description' => 'Serviço mensal — ' . now()->translatedFormat('F'),
+            'amount' => 18500.00,
+            'due_date' => $currentMonth . '-05',
+            'payment_date' => $currentMonth . '-05',
+            'transaction_type' => 'INCOME',
+            'status' => 'PAID',
+            'user_id' => $admin->id,
+            'bank_account_id' => $itau->id,
+            'category_id' => $servicos->id,
+            'client_id' => $alpha->id,
+        ]);
+
+        Transaction::create([
+            'description' => 'Consultoria — ' . now()->translatedFormat('F'),
+            'amount' => 9200.00,
+            'due_date' => $currentMonth . '-12',
+            'transaction_type' => 'INCOME',
+            'status' => 'PENDING',
+            'user_id' => $admin->id,
+            'bank_account_id' => $itau->id,
+            'category_id' => $consultoria->id,
+            'client_id' => $beta->id,
+        ]);
+
+        Transaction::create([
+            'description' => 'Aluguel — ' . now()->translatedFormat('F'),
+            'amount' => 4200.00,
+            'due_date' => $currentMonth . '-08',
+            'payment_date' => $currentMonth . '-08',
+            'transaction_type' => 'EXPENSE',
+            'status' => 'PAID',
+            'user_id' => $admin->id,
+            'bank_account_id' => $nubank->id,
+            'category_id' => $despFix->id,
+        ]);
+
+        Transaction::create([
+            'description' => 'Fornecedores — ' . now()->translatedFormat('F'),
+            'amount' => 2800.00,
+            'due_date' => $currentMonth . '-18',
+            'transaction_type' => 'EXPENSE',
+            'status' => 'PENDING',
+            'user_id' => $admin->id,
+            'bank_account_id' => $bradesco->id,
+            'category_id' => $compras->id,
+        ]);
     }
 }

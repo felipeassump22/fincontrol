@@ -11,7 +11,7 @@
 @section('content')
 <div class="topbar">
     <span class="topbar-title">{{ __('Parcelamentos') }}</span>
-    @if($user->isAdmin())
+    @if($user->canManageFinances())
         <button class="btn btn-primary" onclick="openModal('modal-installment')"><i class="ti ti-plus"></i>{{ __('Nova compra parcelada') }}</button>
     @endif
 </div>

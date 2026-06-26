@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\TransactionStatus;
 use App\Models\Transaction;
 use App\Models\User;
 
@@ -9,68 +10,89 @@ use App\Models\User;
  * Policy: TransactionPolicy
  *
  * RF01 — Controle de acesso.
- * RF03 — Bloquear edição de lançamentos pagos.
+ * RF03 / Req 6 — Bloquear edição de lançamentos pagos/conciliados para Financeiro.
  */
 class TransactionPolicy
 {
-    /**
-     * Qualquer usuário autenticado pode ver lançamentos.
-     */
     public function viewAny(User $user): bool
     {
         return true;
     }
 
-    /**
-     * Qualquer usuário autenticado pode ver um lançamento.
-     */
     public function view(User $user, Transaction $transaction): bool
     {
-        return $user->id === $transaction->user_id;
+        return $user->ownsFinancialData($transaction);
     }
 
-    /**
-     * Apenas admin pode criar lançamentos.
-     */
     public function create(User $user): bool
     {
-        return $user->isAdmin();
+        return $user->canManageFinances();
     }
 
-    /**
-     * Admin pode editar, mas NÃO se o lançamento estiver pago (RF03).
-     */
     public function update(User $user, Transaction $transaction): bool
     {
-        if ($transaction->isPaid()) {
+        if (! $user->ownsFinancialData($transaction) || ! $user->canManageFinances()) {
             return false;
         }
 
-        return $user->isAdmin() && $user->id === $transaction->user_id;
+        if ($transaction->status === TransactionStatus::CANCELED) {
+            return false;
+        }
+
+        if ($user->isFinancial() && $transaction->status !== TransactionStatus::PENDING) {
+            return false;
+        }
+
+        return true;
     }
 
-    /**
-     * Deletar depende da permissão do perfil (can_delete_transactions).
-     * RF01
-     */
     public function delete(User $user, Transaction $transaction): bool
     {
-        if (! $user->canDeleteTransactions()) {
-            return false;
-        }
-
-        return $user->id === $transaction->user_id;
+        return $user->isAdmin()
+            && $user->ownsFinancialData($transaction);
     }
 
-    /**
-     * Apenas admin pode marcar como pago.
-     */
     public function pay(User $user, Transaction $transaction): bool
     {
-        if ($transaction->isPaid()) {
+        if ($transaction->status !== TransactionStatus::PENDING) {
             return false;
         }
 
-        return $user->isAdmin() && $user->id === $transaction->user_id;
+        return $user->canManageFinances() && $user->ownsFinancialData($transaction);
+    }
+
+    public function reconcile(User $user, Transaction $transaction): bool
+    {
+        if ($transaction->status !== TransactionStatus::PAID) {
+            return false;
+        }
+
+        return $user->canManageFinances() && $user->ownsFinancialData($transaction);
+    }
+
+    public function cancel(User $user, Transaction $transaction): bool
+    {
+        if ($transaction->status !== TransactionStatus::PENDING) {
+            return false;
+        }
+
+        return $user->canManageFinances() && $user->ownsFinancialData($transaction);
+    }
+
+    public function reverse(User $user, Transaction $transaction): bool
+    {
+        if (! $user->ownsFinancialData($transaction) || ! $user->canManageFinances()) {
+            return false;
+        }
+
+        if (! in_array($transaction->status, [TransactionStatus::PAID, TransactionStatus::RECONCILED], true)) {
+            return false;
+        }
+
+        if ($transaction->wasReversed() || $transaction->credit_card_id) {
+            return false;
+        }
+
+        return true;
     }
 }

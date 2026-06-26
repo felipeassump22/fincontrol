@@ -23,8 +23,9 @@ class RecurringExpenseController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $expenses = $this->recurringExpenseService->listForUser($user->id);
-        $bankAccounts = BankAccount::where('user_id', $user->id)->get();
+        $ownerId = $user->dataOwnerId();
+        $expenses = $this->recurringExpenseService->listForUser($ownerId);
+        $bankAccounts = BankAccount::where('user_id', $ownerId)->active()->orderBy('name')->get();
         $categories = Cache::remember('categories.expense', 86400, function () {
             return Category::where('type', 'EXPENSE')->get();
         });
@@ -34,6 +35,10 @@ class RecurringExpenseController extends Controller
 
     public function store(Request $request)
     {
+        if (! $request->user()->canManageFinances()) {
+            abort(403);
+        }
+
         $data = $request->validate([
             'description' => 'required|string|max:255',
             'amount' => 'required|numeric|min:0.01',
@@ -46,7 +51,7 @@ class RecurringExpenseController extends Controller
             'day_of_month.required' => 'O dia do mês é obrigatório.',
         ]);
 
-        $data['user_id'] = $request->user()->id;
+        $data['user_id'] = $request->user()->dataOwnerId();
         RecurringExpense::create($data);
 
         return redirect()->route('recurring-expenses.index')
@@ -55,7 +60,7 @@ class RecurringExpenseController extends Controller
 
     public function update(Request $request, RecurringExpense $recurringExpense)
     {
-        if ($recurringExpense->user_id !== $request->user()->id) {
+        if (! $request->user()->canManageFinances() || ! $request->user()->ownsFinancialData($recurringExpense)) {
             abort(403, 'Acesso negado.');
         }
 
@@ -77,7 +82,7 @@ class RecurringExpenseController extends Controller
 
     public function destroy(Request $request, RecurringExpense $recurringExpense)
     {
-        if ($recurringExpense->user_id !== $request->user()->id) {
+        if (! $request->user()->canManageFinances() || ! $request->user()->ownsFinancialData($recurringExpense)) {
             abort(403, 'Acesso negado.');
         }
 

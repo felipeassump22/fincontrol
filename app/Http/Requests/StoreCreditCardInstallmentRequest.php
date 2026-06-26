@@ -13,7 +13,7 @@ class StoreCreditCardInstallmentRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null && $this->user()->isAdmin();
+        return $this->user() !== null && $this->user()->canManageFinances();
     }
 
     public function rules(): array

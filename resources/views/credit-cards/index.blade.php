@@ -19,7 +19,7 @@
                 @endfor
             </select>
         </form>
-        @if(auth()->user()->isAdmin())
+        @if(auth()->user()->canManageFinances())
             <button class="btn btn-primary" onclick="openModal('modal-card')"><i class="ti ti-plus"></i>{{ __('Novo cartão') }}</button>
         @endif
     </div>
@@ -35,7 +35,7 @@
             <p style="color:var(--color-text-secondary);margin-bottom:24px;font-size:14px;max-width:400px;margin-left:auto;margin-right:auto;">
                 {{ __('Cadastre seu primeiro cartão para gerenciar faturas virtuais e compras parceladas.') }}
             </p>
-            @if(auth()->user()->isAdmin())
+            @if(auth()->user()->canManageFinances())
                 <button class="btn btn-primary" onclick="openModal('modal-card')" style="margin: 0 auto;">
                     <i class="ti ti-plus"></i>{{ __('Cadastrar Cartão') }}
                 </button>
@@ -56,7 +56,7 @@
                                 <div style="font-size:12px;color:var(--color-text-secondary)">•••• {{ $card->last_four_digits }}</div>
                             </div>
                         </div>
-                        @if(auth()->user()->isAdmin())
+                        @if(auth()->user()->canManageFinances())
                             <i class="ti ti-edit action-icon" onclick="openModal('modal-edit-{{ $card->id }}')" title="{{ __('Editar') }}"></i>
                         @endif
                     </div>
@@ -67,6 +67,10 @@
                     </div>
                     <div style="font-size:11px;color:var(--color-text-tertiary);margin-bottom:4px">
                         {{ __('Fatura virtual') }} — {{ $summary['period_start']->format('d/m') }} {{ __('a') }} {{ $summary['period_end']->format('d/m/Y') }}
+                    </div>
+                    @php $invoiceStatus = $card->invoice_status ?? $summary['status']; @endphp
+                    <div style="margin-bottom:8px">
+                        <span class="badge {{ $invoiceStatus->badgeClass() }}">{{ $invoiceStatus->label() }}</span>
                     </div>
                     <div style="font-size:20px;font-weight:500;color:{{ $card->open_invoice_total > 0 ? 'var(--color-text-warning)' : 'var(--color-text-success)' }}">
                         {{ money($card->open_invoice_total) }}
@@ -80,12 +84,12 @@
                         <i class="ti ti-filter"></i>{{ __('Lançamentos detalhados') }}
                     </a>
 
-                    @if(auth()->user()->isAdmin())
+                    @if(auth()->user()->canManageFinances())
                         <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
                             <button class="btn btn-sm" onclick="openModal('modal-installment-{{ $card->id }}')" style="width:100%;justify-content:center">
                                 <i class="ti ti-shopping-cart"></i>{{ __('Compra parcelada') }}
                             </button>
-                            @if($card->open_invoice_total > 0)
+                            @if($card->open_invoice_total > 0 && ($invoiceStatus->value ?? '') !== 'PAID')
                                 <button class="btn btn-sm btn-success" onclick="openModal('modal-pay-{{ $card->id }}')" style="width:100%;justify-content:center">
                                     <i class="ti ti-check"></i>{{ __('Pagar fatura') }}
                                 </button>

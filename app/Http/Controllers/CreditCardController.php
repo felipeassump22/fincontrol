@@ -27,13 +27,14 @@ class CreditCardController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
+        $ownerId = $user->dataOwnerId();
         $year = (int) $request->get('year', now()->year);
         $month = (int) $request->get('month', now()->month);
 
-        $cards = $this->creditCardService->listWithTotals($user->id, $month, $year);
-        $bankAccounts = BankAccount::where('user_id', $user->id)->get();
+        $cards = $this->creditCardService->listWithTotals($ownerId, $month, $year);
+        $bankAccounts = BankAccount::where('user_id', $ownerId)->active()->orderBy('name')->get();
         $categories = Cache::remember('categories.all', 86400, fn () => Category::all());
-        $clients = Client::where('user_id', $user->id)->get();
+        $clients = Client::where('user_id', $ownerId)->get();
 
         return view('credit-cards.index', compact(
             'cards', 'bankAccounts', 'categories', 'clients', 'year', 'month'
@@ -42,8 +43,10 @@ class CreditCardController extends Controller
 
     public function store(StoreCreditCardRequest $request)
     {
+        $this->authorize('create', CreditCard::class);
+
         $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
+        $data['user_id'] = $request->user()->dataOwnerId();
 
         $this->creditCardService->create($data);
 
@@ -53,7 +56,7 @@ class CreditCardController extends Controller
 
     public function update(StoreCreditCardRequest $request, CreditCard $creditCard)
     {
-        $this->ensureOwnsCard($request, $creditCard);
+        $this->authorize('update', $creditCard);
 
         $this->creditCardService->update($creditCard, $request->validated());
 
@@ -65,7 +68,7 @@ class CreditCardController extends Controller
 
     public function show(Request $request, CreditCard $creditCard)
     {
-        $this->ensureOwnsCard($request, $creditCard);
+        $this->authorize('view', $creditCard);
 
         $futureOnly = $request->boolean('future_only');
         $month = (int) $request->get('month', now()->month);
@@ -96,13 +99,13 @@ class CreditCardController extends Controller
      */
     public function storeInstallment(StoreCreditCardInstallmentRequest $request, CreditCard $creditCard)
     {
-        $this->ensureOwnsCard($request, $creditCard);
+        $this->authorize('storeInstallment', $creditCard);
 
         $data = $request->validated();
-        $data['user_id'] = $request->user()->id;
+        $data['user_id'] = $request->user()->dataOwnerId();
         $data['credit_card_id'] = $creditCard->id;
 
-        $this->assertBankAccountBelongsToUser($request->user()->id, (int) $data['bank_account_id']);
+        $this->assertBankAccountBelongsToUser($request->user()->dataOwnerId(), (int) $data['bank_account_id']);
 
         if ($request->boolean('is_recurring')) {
             \App\Models\RecurringExpense::create([
@@ -135,15 +138,19 @@ class CreditCardController extends Controller
      */
     public function payInvoice(PayCreditCardInvoiceRequest $request, CreditCard $creditCard)
     {
-        $this->ensureOwnsCard($request, $creditCard);
+        $this->authorize('payInvoice', $creditCard);
 
         $data = $request->validated();
-        $this->assertBankAccountBelongsToUser($request->user()->id, (int) $data['bank_account_id']);
+        $this->assertBankAccountBelongsToUser($request->user()->dataOwnerId(), (int) $data['bank_account_id']);
 
         $month = isset($data['month']) ? (int) $data['month'] : (int) now()->month;
         $year = isset($data['year']) ? (int) $data['year'] : (int) now()->year;
 
         $summary = $this->creditCardService->getInvoiceSummary($creditCard, $month, $year);
+
+        if ($summary['status'] === \App\Enums\CreditCardInvoiceStatus::PAID) {
+            return back()->with('error', 'A fatura deste período já está paga.');
+        }
 
         if ($summary['count'] === 0) {
             return back()->with('error', 'Não há lançamentos pendentes na fatura deste período.');
@@ -155,19 +162,15 @@ class CreditCardController extends Controller
             ->with('success', 'Fatura paga! Lançamentos do período baixados automaticamente.');
     }
 
-    private function ensureOwnsCard(Request $request, CreditCard $creditCard): void
-    {
-        if ($creditCard->user_id !== $request->user()->id) {
-            abort(403, 'Acesso negado.');
-        }
-    }
-
     private function assertBankAccountBelongsToUser(int $userId, int $bankAccountId): void
     {
-        $owns = BankAccount::where('id', $bankAccountId)->where('user_id', $userId)->exists();
+        $owns = BankAccount::where('id', $bankAccountId)
+            ->where('user_id', $userId)
+            ->active()
+            ->exists();
 
         if (! $owns) {
-            abort(403, 'Conta bancária inválida para este usuário.');
+            abort(403, 'Conta bancária inválida ou inativa para este usuário.');
         }
     }
 }

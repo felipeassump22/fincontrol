@@ -21,6 +21,14 @@ enum TransactionType: string
         };
     }
 
+    public function reverse(): TransactionType
+    {
+        return match ($this) {
+            self::INCOME => self::EXPENSE,
+            self::EXPENSE => self::INCOME,
+        };
+    }
+
     /**
      * Retorna a classe CSS correspondente.
      */

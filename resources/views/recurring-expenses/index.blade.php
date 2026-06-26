@@ -4,7 +4,7 @@
 @section('content')
 <div class="topbar">
     <span class="topbar-title">{{ __('Despesas fixas recorrentes') }}</span>
-    @if(auth()->user()->isAdmin())
+    @if(auth()->user()->canManageFinances())
         <button class="btn btn-primary" onclick="openModal('modal-recurring')"><i class="ti ti-plus"></i>{{ __('Nova despesa fixa') }}</button>
     @endif
 </div>
@@ -35,7 +35,7 @@
                         </td>
                         <td>
                             <div class="action-cell">
-                                @if(auth()->user()->isAdmin())
+                                @if(auth()->user()->canManageFinances())
                                     <form method="POST" action="{{ route('recurring-expenses.destroy', $exp) }}" style="display:inline"
                                           onsubmit="return confirm('Excluir esta despesa recorrente?')">
                                         @csrf @method('DELETE')
